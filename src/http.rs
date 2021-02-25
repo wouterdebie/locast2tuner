@@ -157,8 +157,24 @@ async fn tuner_m3u(data: web::Data<AppState>) -> impl Responder {
         ));
         builder.append(format!("\n{}\n\n", url));
     }
+
     HttpResponse::Ok().body(builder.string().unwrap())
 }
+
+trait Or {
+    fn or(&self, other: &String) -> &String;
+}
+
+impl Or for String {
+    fn or(&self, other: &String) -> &String {
+        if !self.is_empty(){
+            self
+        } else {
+            other
+        }
+    }
+}
+
 
 async fn watch(req: HttpRequest) -> impl Responder {
     let id = req.match_info().get("id").unwrap();
