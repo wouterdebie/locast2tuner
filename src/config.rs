@@ -1,4 +1,5 @@
 use clap_conf::*;
+use serde::Serialize;
 use simple_error::SimpleError;
 use std::fs;
 use std::fs::File;
@@ -6,8 +7,7 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use uuid::Uuid;
-
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize, Clone)]
 pub struct Config {
     pub username: String,
     pub password: String,

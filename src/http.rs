@@ -7,6 +7,8 @@ use serde::Serialize;
 use std::sync::{Arc, Mutex};
 use string_builder::Builder;
 
+const NETWORKS: [&'static str; 6] = ["ABC", "CBS", "NBC", "FOX", "CW", "PBS"];
+
 #[derive(Template)] // this will generate the code...
 #[template(path = "device.xml")] // using the template in this path, relative
                                  // to the `templates` dir in the crate root
@@ -102,12 +104,11 @@ async fn lineup_status(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(response)
 }
 
-fn name_only(value: &String) -> String {
+fn name_only(value: &str) -> &str {
     match Regex::new(r"\d+\.\d+ (.+)").unwrap().captures(value) {
         Some(c) => c.get(1).map_or("", |m| m.as_str()),
         None => &value,
     }
-    .to_string()
 }
 
 async fn tuner_m3u(data: web::Data<AppState>) -> impl Responder {
@@ -117,64 +118,71 @@ async fn tuner_m3u(data: web::Data<AppState>) -> impl Responder {
     let stations = stations_mutex.lock().unwrap();
 
     for station in stations.iter() {
-        let call_sign = name_only(if station.callSign.is_empty() {
-            &station.name
-        } else {
-            &station.callSign
-        });
-
+        let call_sign = name_only(&station.callSign.or(&station.name));
         let city = &data.service.geo.name;
-
-        let logo = if station.logoUrl.is_empty() {
-            &station.logo226Url
-        } else {
-            &station.logoUrl
-        };
-
+        let logo = station.logoUrl.or(&station.logo226Url);
         let channel = station.channel.as_ref().unwrap();
-
-        let network = if vec!["ABC", "CBS", "NBC", "FOX", "CW", "PBS"].contains(&call_sign.as_str())
-        {
-            "Network".to_string()
+        let groups = if NETWORKS.contains(&call_sign) {
+            format!("{};Network", &city,)
         } else {
-            "".to_string()
+            city.to_owned()
         };
 
-        let city_and_network = &format!("{};{}", &city, &network).to_string();
-        let groups = if network.is_empty() {
-            city
-        } else {
-            city_and_network
-        };
+        builder.append(format!(
+            "#EXTINF:-1 tvg-id=\"channel.{}\" tvg-name=\"{}\" tvg-logo=\"{}\" tvg-chno=\"{}\" group-title=\"{}\", {}",
+            &station.id, &call_sign, &logo, &channel, &groups, &call_sign
+        ));
 
         let url = format!(
             "http://{}:{}/watch/{}.m3u",
             &data.config.bind_address, &data.port, &station.id
         );
-        builder.append(format!(
-            "#EXTINF:-1 tvg-id=\"channel.{}\" tvg-name=\"{}\" tvg-logo=\"{}\" tvg-chno=\"{}\" group-title=\"{}\", {}",
-            &station.id, &call_sign, &logo, &channel, &groups, &call_sign
-        ));
         builder.append(format!("\n{}\n\n", url));
     }
 
     HttpResponse::Ok().body(builder.string().unwrap())
 }
 
-trait Or {
-    fn or(&self, other: &String) -> &String;
+#[derive(Serialize)]
+#[allow(non_snake_case)]
+struct LineupJson {
+    GuideNumber: String,
+    GuideName: String,
+    URL: String,
 }
 
-impl Or for String {
-    fn or(&self, other: &String) -> &String {
-        if !self.is_empty(){
-            self
-        } else {
-            other
-        }
-    }
+async fn lineup_json(data: web::Data<AppState>) -> impl Responder {
+    let stations_mutex = data.service.stations();
+    let stations = stations_mutex.lock().unwrap();
+
+    let lineup: Vec<LineupJson> = stations
+        .iter()
+        .map(|station| {
+            let url = format!(
+                "http://{}:{}/watch/{}",
+                &data.config.bind_address, &data.port, &station.id
+            );
+            LineupJson {
+                GuideNumber: station.channel.as_ref().unwrap().to_owned(),
+                GuideName: station.name.to_owned(),
+                URL: url,
+            }
+        })
+        .collect();
+
+    HttpResponse::Ok().json(lineup)
+}
+async fn show_config(data: web::Data<AppState>) -> impl Responder {
+    let mut config = (*data.config).clone();
+    config.password = "*******".to_string();
+    HttpResponse::Ok().json(config)
 }
 
+async fn epg(data: web::Data<AppState>) -> impl Responder {
+    let stations_mutex = data.service.stations();
+    let stations = &*stations_mutex.lock().unwrap();
+    HttpResponse::Ok().json(stations)
+}
 
 async fn watch(req: HttpRequest) -> impl Responder {
     let id = req.match_info().get("id").unwrap();
@@ -213,6 +221,9 @@ pub async fn start(services: Vec<Arc<LocastService>>, config: Arc<Config>) -> st
                     .route("/discover.json", web::get().to(discover))
                     .route("/lineup_status.json", web::get().to(lineup_status))
                     .route("/tuner.m3u", web::get().to(tuner_m3u))
+                    .route("/lineup.json", web::get().to(lineup_json))
+                    .route("/epg", web::get().to(epg))
+                    .route("/config", web::get().to(show_config))
                     .service(web::resource("/watch/{id}").route(web::get().to(watch)))
             })
             .bind((bind_address.to_owned(), port))
@@ -224,4 +235,19 @@ pub async fn start(services: Vec<Arc<LocastService>>, config: Arc<Config>) -> st
     println!("Server started..");
     future::try_join_all(servers).await?;
     Ok(())
+}
+
+trait Or {
+    /// Return `self` if it's not empty, otherwise `other`
+    fn or<'a>(&'a self, other: &'a str) -> &str;
+}
+
+impl Or for String {
+    fn or<'a>(&'a self, other: &'a str) -> &str {
+        if !self.is_empty() {
+            self
+        } else {
+            other
+        }
+    }
 }
