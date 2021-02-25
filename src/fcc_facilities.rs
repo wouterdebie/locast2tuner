@@ -1,10 +1,16 @@
 use crate::config::Config;
 use bytes::Bytes;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use serde::Deserialize;
-use std::{collections::HashMap, time::SystemTime, usize};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    thread,
+    time::{self, SystemTime},
+    usize,
+};
 use std::{fs::File, io::prelude::*};
 use std::{io::BufReader, path::PathBuf};
 
@@ -19,53 +25,67 @@ static TV_VIRTUAL_CHANNEL: usize = 28;
 static SERVICE_LIST: &'static [&str] = &["DT", "TX", "TV", "TB", "LD", "DC"];
 
 static MAX_FILE_AGE: u64 = 26 * 60 * 60;
+static CHECK_INTERVAL: u64 = 3600;
 
 static FACILITIES_URL: &str =
     "https://transition.fcc.gov/ftp/Bureaus/MB/Databases/cdbs/facility.zip";
 static DMA_URL: &str = "http://api.locastnet.org/api/dma";
 
 #[derive(Debug)]
-pub struct FCCFacilities<'a> {
-    config: &'a Config,
-    facilities_map: HashMap<(i64, String), (String, String)>,
+pub struct FCCFacilities {
+    config: Arc<Config>,
+    facilities_map: FacilitiesMap,
 }
 
-// TODO: Reload
-impl<'a> FCCFacilities<'a> {
-    pub fn new(config: &'a Config) -> FCCFacilities<'a> {
-        let cache_file = config.cache_directory.join("facilities");
-        let facilities_map = load(&cache_file);
+// (locast_id, call_sign) --> (fac_channel, tv_virtual_channel)
+type FacilitiesMap = Arc<Mutex<HashMap<(i64, String), (String, String)>>>;
 
-        let f = FCCFacilities {
+impl FCCFacilities {
+    pub fn new(config: Arc<Config>) -> FCCFacilities {
+        // Make sure we have a complete facilities object before returning
+        let facilities_map = Arc::new(Mutex::new(load(&config.cache_directory.join("facilities"))));
+        start_updater_thread(&facilities_map, &config);
+
+        let facilities = FCCFacilities {
             config,
             facilities_map,
         };
 
-        // let timer = timer::Timer::new();
-        // timer.schedule_with_delay(chrono::Duration::seconds(20), move || {
-        //     println!("Reloading FCC facilities..");
-        //     f.reload()
-        // });
-        f
+        // Start reload thread. This runs in the background forever.
+
+        facilities
     }
 
-    pub fn by_dma_and_call_sign(&self, key: &(i64, String)) -> (&str, bool) {
-        let (fac_channel, tv_virtual_channel) = self.facilities_map.get(key).unwrap(); // This should exist
+    pub fn lookup(&self, locast_dma: i64, call_sign: &str, sub_channel: &str) -> String {
+        let facilities_map = self.facilities_map.lock().unwrap();
+        let (fac_channel, tv_virtual_channel) = facilities_map
+            .get(&(locast_dma, call_sign.to_string()))
+            .unwrap(); // This should exist
 
-        let channel = if let "" = tv_virtual_channel.as_str() {
-            fac_channel.as_str()
+        if tv_virtual_channel.is_empty() {
+            fac_channel.to_owned()
+        } else if sub_channel.is_empty() {
+            let s = format!("{}.1", fac_channel.as_str());
+            s
         } else {
-            tv_virtual_channel.as_str()
-        };
-
-        let analog = tv_virtual_channel == "";
-        (channel, analog)
+            let s = format!("{}.{}", fac_channel.as_str(), sub_channel);
+            s
+        }
     }
+}
 
-    pub fn reload(&mut self) {
-        let cache_file = self.config.cache_directory.join("facilities");
-        self.facilities_map = load(&cache_file);
-    }
+fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
+    let facilities_map = facilities_map.clone();
+    let config = config.clone();
+
+    thread::spawn(move || loop {
+        thread::sleep(time::Duration::from_secs(CHECK_INTERVAL));
+        println!("Reloading FCC facilities..");
+        let cache_file = config.cache_directory.join("facilities");
+        let new_facilties = load(&cache_file);
+        let mut facilities = facilities_map.lock().unwrap();
+        *facilities = new_facilties;
+    });
 }
 
 fn path_expired(path: &PathBuf) -> bool {

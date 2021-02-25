@@ -2,31 +2,37 @@ use crate::{config::Config, credentials::LocastCredentials, fcc_facilities::FCCF
 use chrono::Utc;
 use regex::Regex;
 use serde::Deserialize;
-use std::fmt;
-use std::{convert::From, str::FromStr};
+use std::{
+    convert::From,
+    fmt,
+    str::FromStr,
+    sync::{Arc, Mutex},
+    thread, time,
+};
 
 static DMA_URL: &str = "https://api.locastnet.org/api/watch/dma";
 static IP_URL: &str = "https://api.locastnet.org/api/watch/dma/ip";
 static STATIONS_URL: &str = "https://api.locastnet.org/api/watch/epg";
 
 #[derive(Debug)]
-pub struct LocastService<'a, 'b, 'c> {
-    config: &'a Config,
-    credentials: &'b LocastCredentials<'b>,
-    fcc_facilities: &'c FCCFacilities<'c>,
+pub struct LocastService {
+    config: Arc<Config>,
+    credentials: Arc<LocastCredentials>,
+    fcc_facilities: Arc<FCCFacilities>,
     zipcode: Option<String>,
-    geo: Geo,
-    uuid: String,
+    pub geo: Arc<Geo>,
+    pub uuid: String,
+    stations: Stations,
 }
 
-impl<'a, 'b, 'c> LocastService<'a, 'b, 'c> {
+impl LocastService {
     pub fn new(
-        config: &'a Config,
-        credentials: &'b LocastCredentials<'b>,
-        fcc_facilities: &'c FCCFacilities<'c>,
+        config: Arc<Config>,
+        credentials: Arc<LocastCredentials>,
+        fcc_facilities: Arc<FCCFacilities>,
         zipcode: Option<String>,
-    ) -> LocastService<'a, 'b, 'c> {
-        let geo = Geo::from(&zipcode);
+    ) -> Arc<LocastService> {
+        let geo = Arc::new(Geo::from(&zipcode));
         if !geo.active {
             panic!(format!("{} not active", geo.name))
         }
@@ -37,79 +43,50 @@ impl<'a, 'b, 'c> LocastService<'a, 'b, 'c> {
         )
         .to_string();
 
-        LocastService {
+        let stations = Arc::new(Mutex::new(build_stations(
+            locast_stations(&geo.DMA, config.days, &credentials.token()),
+            &geo,
+            &config,
+            &fcc_facilities,
+        )));
+
+        start_updater_thread(&config, &stations, &geo, &credentials, &fcc_facilities);
+
+        let service = Arc::new(LocastService {
             config,
             credentials,
             fcc_facilities,
             zipcode,
-            geo: geo,
+            geo,
             uuid,
+            stations,
+        });
+
+        service
+    }
+
+    pub fn stations(&self) -> Arc<Mutex<Vec<Station>>> {
+        if self.config.disable_station_cache {
+            Arc::new(Mutex::new(self.build_stations()))
+        } else {
+            self.stations.clone()
         }
     }
 
-    // TODO: Caching
-    pub fn stations(&self) {
-        self.build_stations();
-    }
-
-    fn build_stations(&self) {
-        let locast_stations = self.locast_stations();
-
-        for mut station in locast_stations.into_iter() {
-            station.timezone = self.geo.timezone.to_owned();
-            station.city = Some(self.geo.name.to_owned());
-
-            let channel_from_call_sign = match Regex::new(r"(\d+\.\d+) .+")
-                .unwrap()
-                .captures(&station.callSign)
-            {
-                Some(c) => Some(c.get(1).map_or("", |m| m.as_str())),
-                None => None,
-            };
-
-            let c = if let Some(channel) = channel_from_call_sign {
-                Some(channel.to_string())
-            } else if let Some((call_sign, sub_channel)) =
-                detect_callsign(&station.name).or(detect_callsign(&station.callSign))
-            {
-                let dma = self.geo.DMA.parse::<i64>().unwrap();
-                let (fcc_channel, analog) = self
-                    .fcc_facilities
-                    .by_dma_and_call_sign(&(dma, call_sign.to_string()));
-                let channel = if let true = analog {
-                    fcc_channel.to_string()
-                } else if sub_channel.is_empty() {
-                    format!("{}.1", fcc_channel)
-                } else {
-                        format!("{}.{}", fcc_channel, sub_channel)
-                };
-                Some(channel.to_string())
-            } else {
-                panic!(format!(
-                    "Channel {}, call sign: {} not found!",
-                    &station.name, &station.callSign
-                ));
-            };
-            station.channel = c;
-        }
-    }
-
-    fn locast_stations(&self) -> Vec<Station> {
-        let start_time = Utc::now().format("%Y-%m-%dT00:00:00-00:00").to_string();
-        let uri = format!(
-            "{}/{}?startTime={}&hours={}",
-            STATIONS_URL,
-            self.geo.DMA,
-            start_time,
-            self.config.days * 24
-        );
-        crate::utils::get(&uri, Some(&self.credentials.token()))
-            .json::<Vec<Station>>()
-            .unwrap()
+    // Convenience method for building stations based on &self
+    fn build_stations(&self) -> Vec<Station> {
+        let locast_stations =
+            locast_stations(&self.geo.DMA, self.config.days, &self.credentials.token());
+        build_stations(
+            locast_stations,
+            &self.geo,
+            &self.config,
+            &self.fcc_facilities,
+        )
     }
 }
 
-impl<'a, 'b, 'c> fmt::Display for LocastService<'a, 'b, 'c> {
+impl fmt::Display for LocastService {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -117,6 +94,95 @@ impl<'a, 'b, 'c> fmt::Display for LocastService<'a, 'b, 'c> {
             self.zipcode, self.uuid, self.geo
         )
     }
+}
+
+fn start_updater_thread(
+    config: &Arc<Config>,
+    stations: &Stations,
+    geo: &Arc<Geo>,
+    credentials: &Arc<LocastCredentials>,
+    fcc_facilities: &Arc<FCCFacilities>,
+) {
+    // Can this be done nicer?
+    let thread_stations = stations.clone();
+    let thread_config = config.clone();
+    let thread_geo = geo.clone();
+    let thread_credentials = credentials.clone();
+    let thread_facilities = fcc_facilities.clone();
+    let thread_timeout = config.cache_timeout.clone();
+
+    thread::spawn(move || loop {
+        thread::sleep(time::Duration::from_secs(thread_timeout));
+        let ls = locast_stations(
+            &thread_geo.DMA,
+            thread_config.days,
+            &thread_credentials.token(),
+        );
+        let new_stations = build_stations(ls, &thread_geo, &thread_config, &thread_facilities);
+        let mut stations = thread_stations.lock().unwrap();
+        *stations = new_stations;
+    });
+}
+
+// Build stations
+fn build_stations(
+    locast_stations: Vec<Station>,
+    geo: &Geo,
+    config: &Arc<Config>,
+    fcc_facilities: &Arc<FCCFacilities>,
+) -> Vec<Station> {
+    println!(
+        "Loading stations for {} (cache: {}, cache timeout: {}, days: {}",
+        geo.name, config.disable_station_cache, config.cache_timeout, config.days
+    );
+
+    let mut stations: Vec<Station> = Vec::new();
+
+    for mut station in locast_stations.into_iter() {
+        station.timezone = geo.timezone.to_owned();
+        station.city = Some(geo.name.to_owned());
+
+        let channel_from_call_sign = match Regex::new(r"(\d+\.\d+) .+")
+            .unwrap()
+            .captures(&station.callSign)
+        {
+            Some(c) => Some(c.get(1).map_or("", |m| m.as_str())),
+            None => None,
+        };
+
+        let c = if let Some(channel) = channel_from_call_sign {
+            Some(channel.to_string())
+        } else if let Some((call_sign, sub_channel)) =
+            detect_callsign(&station.name).or(detect_callsign(&station.callSign))
+        {
+            let dma = geo.DMA.parse::<i64>().unwrap();
+            let channel = fcc_facilities.lookup(dma, call_sign, sub_channel);
+
+            Some(channel)
+        } else {
+            panic!(format!(
+                "Channel {}, call sign: {} not found!",
+                &station.name, &station.callSign
+            ));
+        };
+        station.channel = c;
+        stations.push(station);
+    }
+    stations
+}
+
+fn locast_stations(dma: &str, days: u8, token: &str) -> Vec<Station> {
+    let start_time = Utc::now().format("%Y-%m-%dT00:00:00-00:00").to_string();
+    let uri = format!(
+        "{}/{}?startTime={}&hours={}",
+        STATIONS_URL,
+        dma,
+        start_time,
+        days * 24
+    );
+    crate::utils::get(&uri, Some(token))
+        .json::<Vec<Station>>()
+        .unwrap()
 }
 
 fn detect_callsign(input: &str) -> Option<(&str, &str)> {
@@ -129,11 +195,11 @@ fn detect_callsign(input: &str) -> Option<(&str, &str)> {
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
-struct Geo {
+pub struct Geo {
     latitude: f64,
     longitude: f64,
     DMA: String,
-    name: String,
+    pub name: String,
     active: bool,
     timezone: Option<String>,
 }
@@ -153,48 +219,50 @@ impl From<&Option<String>> for Geo {
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
-struct Station {
-    id: i64,
-    dma: i64,
-    stationId: String,
-    name: String,
-    callSign: String,
-    logoUrl: String,
-    active: bool,
-    listings: Vec<Listing>,
-    timezone: Option<String>,
-    city: Option<String>,
-    channel: Option<String>,
+pub struct Station {
+    pub id: i64,
+    pub dma: i64,
+    pub stationId: String,
+    pub name: String,
+    pub callSign: String,
+    pub logoUrl: String,
+    pub logo226Url: String,
+    pub active: bool,
+    pub listings: Vec<Listing>,
+    pub timezone: Option<String>,
+    pub city: Option<String>,
+    pub channel: Option<String>,
 }
+type Stations = Arc<Mutex<Vec<Station>>>;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
-struct Listing {
-    airdate: Option<i64>,
-    audioProperties: Option<String>,
-    description: Option<String>,
-    duration: i32,
-    entityType: String,
-    episodeNumber: Option<i16>,
-    episodeTitle: Option<String>,
-    genres: Option<String>,
-    hasImageArtwork: bool,
-    hasSeriesArtwork: bool,
-    isNew: Option<bool>,
-    preferredImage: Option<String>,
-    preferredImageHeight: Option<i16>,
-    preferredImageWidth: Option<i16>,
-    programId: String,
-    rating: Option<String>,
-    releaseDate: Option<i64>,
-    releaseYear: Option<i16>,
-    seasonNumber: Option<i16>,
-    seriesId: Option<String>,
-    shortDescription: Option<String>,
-    showType: String,
-    startTime: i64,
-    stationId: i64,
-    title: String,
-    topCast: Option<String>,
-    videoProperties: Option<String>,
+pub struct Listing {
+    pub airdate: Option<i64>,
+    pub audioProperties: Option<String>,
+    pub description: Option<String>,
+    pub duration: i32,
+    pub entityType: String,
+    pub episodeNumber: Option<i16>,
+    pub episodeTitle: Option<String>,
+    pub genres: Option<String>,
+    pub hasImageArtwork: bool,
+    pub hasSeriesArtwork: bool,
+    pub isNew: Option<bool>,
+    pub preferredImage: Option<String>,
+    pub preferredImageHeight: Option<i16>,
+    pub preferredImageWidth: Option<i16>,
+    pub programId: String,
+    pub rating: Option<String>,
+    pub releaseDate: Option<i64>,
+    pub releaseYear: Option<i16>,
+    pub seasonNumber: Option<i16>,
+    pub seriesId: Option<String>,
+    pub shortDescription: Option<String>,
+    pub showType: String,
+    pub startTime: i64,
+    pub stationId: i64,
+    pub title: String,
+    pub topCast: Option<String>,
+    pub videoProperties: Option<String>,
 }

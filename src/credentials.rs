@@ -3,45 +3,47 @@ use chrono::{DateTime, Utc};
 use reqwest;
 use serde::Deserialize;
 use serde_json::json;
-use std::cell::RefCell;
-use std::collections::HashMap;
+use std::sync::Arc;
+use std::{collections::HashMap, sync::Mutex};
 
 static LOGIN_URL: &str = "https://api.locastnet.org/api/user/login";
 static USER_URL: &str = "https://api.locastnet.org/api/user/me";
 static TOKEN_LIFETIME: i64 = 3600;
 
 #[derive(Debug)]
-pub struct LocastCredentials<'a> {
-    config: &'a Config,
-    token: RefCell<String>,
-    last_login: RefCell<DateTime<Utc>>,
+pub struct LocastCredentials {
+    config: Arc<Config>,
+    token: Arc<Mutex<String>>,
+    last_login: Arc<Mutex<DateTime<Utc>>>,
 }
 
-impl LocastCredentials<'_> {
-    pub fn new(config: &Config) -> LocastCredentials {
+impl LocastCredentials {
+    pub fn new(config: Arc<Config>) -> LocastCredentials {
         let token = login(&(config.username), &(config.password));
         validate_user(&token);
         let last_login = Utc::now();
         LocastCredentials {
             config,
-            token: RefCell::new(token),
-            last_login: RefCell::new(last_login),
+            token: Arc::new(Mutex::new(token)),
+            last_login: Arc::new(Mutex::new(last_login)),
         }
     }
 
     pub fn token(&self) -> String {
         self.validate_token();
-        self.token.borrow().to_string()
+        self.token.lock().unwrap().to_owned()
     }
 
     pub fn validate_token(&self) {
-        if (Utc::now() - *self.last_login.borrow()).num_seconds() < TOKEN_LIFETIME {
+        let mut last_login = self.last_login.lock().unwrap();
+        if (Utc::now() - *last_login).num_seconds() < TOKEN_LIFETIME {
             return;
         }
         println!("Login token expired: {:?}", self.last_login);
-        self.token
-            .replace(login(&(self.config.username), &(self.config.password)));
-        self.last_login.replace(Utc::now());
+
+        let mut token = self.token.lock().unwrap();
+        *token = login(&(self.config.username), &(self.config.password));
+        *last_login = Utc::now();
     }
 }
 

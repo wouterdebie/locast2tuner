@@ -23,7 +23,7 @@ pub struct Config {
     pub device_firmware: String,
     pub device_version: String,
     pub disable_station_cache: bool,
-    pub cache_timeout: u16,
+    pub cache_timeout: u64,
     pub days: u8,
     pub remap: bool,
     pub ssdp: bool,
@@ -126,6 +126,12 @@ impl Config {
             .grab()
             .arg("device_firmware")
             .conf("device_firmware")
+            .def("hdhomerun3_atsc");
+
+        conf.device_version = cfg
+            .grab()
+            .arg("device_version")
+            .conf("device_version")
             .def("20170612");
 
         conf.disable_station_cache = cfg.bool_flag("disable_station_cache", Filter::Arg)
@@ -135,7 +141,7 @@ impl Config {
             .grab()
             .arg("cache_timeout")
             .conf("cache_timeout")
-            .t_def::<u16>(3600);
+            .t_def::<u64>(3600);
 
         conf.days = cfg.grab().arg("days").conf("days").t_def::<u8>(8);
 
