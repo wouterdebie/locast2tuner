@@ -1,9 +1,13 @@
-use crate::{config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities};
+use crate::{
+    config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get,
+};
 use chrono::Utc;
 use regex::Regex;
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::{
-    convert::From,
+    borrow::Cow,
+    convert::{From, TryFrom},
     fmt,
     str::FromStr,
     sync::{Arc, Mutex},
@@ -13,6 +17,7 @@ use std::{
 static DMA_URL: &str = "https://api.locastnet.org/api/watch/dma";
 static IP_URL: &str = "https://api.locastnet.org/api/watch/dma/ip";
 static STATIONS_URL: &str = "https://api.locastnet.org/api/watch/epg";
+static WATCH_URL: &str = "https://api.locastnet.org/api/watch/station";
 
 #[derive(Debug)]
 pub struct LocastService {
@@ -31,7 +36,7 @@ impl LocastService {
         credentials: Arc<LocastCredentials>,
         fcc_facilities: Arc<FCCFacilities>,
         zipcode: Option<String>,
-    ) -> Arc<LocastService> {
+    ) -> LocastServiceArc {
         let geo = Arc::new(Geo::from(&zipcode));
         if !geo.active {
             panic!(format!("{} not active", geo.name))
@@ -65,14 +70,6 @@ impl LocastService {
         service
     }
 
-    pub fn stations(&self) -> Arc<Mutex<Vec<Station>>> {
-        if self.config.disable_station_cache {
-            Arc::new(Mutex::new(self.build_stations()))
-        } else {
-            self.stations.clone()
-        }
-    }
-
     // Convenience method for building stations based on &self
     fn build_stations(&self) -> Vec<Station> {
         let locast_stations =
@@ -84,6 +81,87 @@ impl LocastService {
             &self.fcc_facilities,
         )
     }
+}
+
+pub type LocastServiceArc = Arc<LocastService>;
+
+impl StationProvider for LocastServiceArc {
+    fn stations(&self) -> Stations {
+        if self.config.disable_station_cache {
+            Arc::new(Mutex::new(self.build_stations()))
+        } else {
+            self.stations.clone()
+        }
+    }
+
+    fn station_stream_uri(&self, id: &str) -> String {
+        let url = format!(
+            "{}/{}/{}/{}",
+            WATCH_URL, id, self.geo.latitude, self.geo.longitude
+        );
+
+        let response: WatchResponse = get(&url, Some(&self.credentials.token())).json().unwrap();
+        println!("{:?}", response);
+        let m3u_data = get(&response.streamUrl, None).text().unwrap();
+        let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
+
+        // Make this nicer with a match
+        if master_playlist.is_err() {
+            response.streamUrl
+        } else {
+            let mut vs = master_playlist.unwrap().variant_streams;
+            vs.sort_by(|a, b| {
+                let ea = match a {
+                    hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
+                        stream_data.bandwidth()
+                    }
+                    _ => 0,
+                };
+                let eb = match b {
+                    hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
+                        stream_data.bandwidth()
+                    }
+                    _ => 0,
+                };
+                ea.cmp(&eb)
+            });
+            let variant = vs.pop().unwrap();
+
+            let stream_url = match variant {
+                hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
+                _ => Cow::Borrowed(""),
+            };
+
+            let full_url = Url::parse(&response.streamUrl)
+                .unwrap()
+                .join(&stream_url.to_string())
+                .unwrap()
+                .to_string();
+
+            full_url.to_string()
+        }
+    }
+
+    fn geo(&self) -> Arc<Geo> {
+        self.geo.clone()
+    }
+
+    fn uuid(&self) -> String {
+        self.uuid.to_owned()
+    }
+}
+
+pub trait StationProvider {
+    fn station_stream_uri(&self, id: &str) -> String;
+    fn stations(&self) -> Stations;
+    fn geo(&self) -> Arc<Geo>;
+    fn uuid(&self) -> String;
+}
+
+#[allow(non_snake_case)]
+#[derive(Deserialize, Debug)]
+struct WatchResponse {
+    streamUrl: String,
 }
 
 impl fmt::Display for LocastService {
@@ -196,8 +274,8 @@ fn detect_callsign(input: &str) -> Option<(&str, &str)> {
 #[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
 pub struct Geo {
-    latitude: f64,
-    longitude: f64,
+    pub latitude: f64,
+    pub longitude: f64,
     DMA: String,
     pub name: String,
     active: bool,
@@ -222,9 +300,7 @@ impl From<&Option<String>> for Geo {
 pub struct Station {
     pub active: bool,
     pub callSign: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub channel: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub city: Option<String>,
     pub dma: i64,
     pub id: i64,
@@ -235,9 +311,8 @@ pub struct Station {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sequence: Option<i64>,
     pub stationId: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub timezone: Option<String>,
-    pub tivoId: i64,
+    pub tivoId: Option<i64>,
     pub transcodeId: i64,
 }
 type Stations = Arc<Mutex<Vec<Station>>>;
@@ -253,7 +328,7 @@ pub struct Listing {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub directors: Option<String>,
-    pub duration: i32,
+    pub duration: i64,
     pub entityType: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub episodeNumber: Option<i16>,

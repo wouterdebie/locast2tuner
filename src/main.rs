@@ -1,10 +1,14 @@
+#![recursion_limit = "256"]
+extern crate chrono;
+extern crate chrono_tz;
 mod config;
 mod credentials;
 mod fcc_facilities;
 mod http;
 mod service;
 mod utils;
-
+mod xml_templates;
+use service::LocastServiceArc;
 use simple_error::SimpleError;
 use std::sync::Arc;
 
@@ -25,8 +29,8 @@ fn main() -> Result<(), SimpleError> {
     let fcc_facilities = Arc::new(fcc_facilities::FCCFacilities::new(conf.clone()));
 
     // Create Locast Services
-    let services: Vec<Arc<service::LocastService>> = if let Some(o) = &conf.override_zipcodes {
-        o.into_iter()
+    let services: Vec<LocastServiceArc> = if let Some(zipcodes) = &conf.override_zipcodes {
+        zipcodes.into_iter()
             .map(|x| {
                 service::LocastService::new(
                     conf.clone(),
@@ -45,7 +49,7 @@ fn main() -> Result<(), SimpleError> {
         )]
     };
 
-    match http::start(services, conf.clone()) {
+    match http::start::<LocastServiceArc>(services, conf.clone()) {
         Ok(()) => Ok(()),
         Err(_) => return Err(SimpleError::new("Failed to start servers")),
     }

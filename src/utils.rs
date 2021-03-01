@@ -1,6 +1,10 @@
+use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono_tz::Tz;
+use regex::Regex;
 use reqwest::{
     blocking::Response,
     header::{HeaderMap, HeaderValue},
+    Url,
 };
 
 pub fn get(uri: &str, token: Option<&str>) -> Response {
@@ -42,4 +46,64 @@ pub fn hdhr_checksum(device_id: usize) -> usize {
     checksum ^= lookup_table[(device_id >> 4) & 0x0F];
     checksum ^= (device_id >> 0) & 0x0F;
     checksum
+}
+
+pub fn name_only(value: &str) -> &str {
+    match Regex::new(r"\d+\.\d+ (.+)").unwrap().captures(value) {
+        Some(c) => c.get(1).map_or("", |m| m.as_str()),
+        None => &value,
+    }
+}
+
+pub fn format_time(timestamp: i64) -> String {
+    let naive = NaiveDateTime::from_timestamp(timestamp / 1000, 0);
+    let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+    datetime.format("%Y%m%d%H%M%S %z").to_string()
+}
+
+pub fn format_date(timestamp: i64) -> String {
+    let naive = NaiveDateTime::from_timestamp(timestamp / 1000, 0);
+    let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+    datetime.format("%Y%m%d").to_string()
+}
+
+pub fn split(value: &str, sep: &str) -> Vec<String> {
+    value.split(sep).map(|x| x.to_string()).collect()
+}
+
+pub fn format_time_local_iso(timestamp: i64, timezone: &Tz) -> String {
+    let naive = NaiveDateTime::from_timestamp(timestamp / 1000, 0);
+    let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+    let in_timezone = datetime.with_timezone(timezone);
+    in_timezone.format("%Y-%m-%d %H:%M:%S").to_string()
+}
+
+pub fn format_date_iso(timestamp: i64) -> String {
+    let naive = NaiveDateTime::from_timestamp(timestamp / 1000, 0);
+    let datetime: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+    datetime.format("%F").to_string()
+}
+
+const HD: [&'static str; 3] = ["1080", "720", "HDTV"];
+pub fn aspect_ratio(properties: &str) -> String {
+    for hd in HD.iter() {
+        if properties.contains(hd) {
+            return "16:9".to_string();
+        }
+    }
+    "4:3".to_string()
+}
+
+pub fn quality(properties: &str) -> String {
+    if properties.contains("HDTV") {
+        return "HDTV".to_string();
+    } else {
+        return "SD".to_string();
+    }
+}
+
+pub fn base_url(mut url: Url) -> Url {
+    url.path_segments_mut().unwrap().clear();
+    url.set_query(None);
+    url
 }

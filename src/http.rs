@@ -1,40 +1,30 @@
-use crate::{config::Config, service::LocastService};
+use crate::utils::base_url;
+use crate::{config::Config, service::StationProvider};
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use askama::Template;
-use futures::future;
-use regex::Regex;
+use chrono::{DateTime, Utc};
+use futures::{future, Stream};
+use reqwest::{header::LOCATION, Url};
 use serde::Serialize;
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::VecDeque,
+    convert::TryFrom,
+    io::Error,
+    sync::{Arc, Mutex},
+};
 use string_builder::Builder;
 
 const NETWORKS: [&'static str; 6] = ["ABC", "CBS", "NBC", "FOX", "CW", "PBS"];
 
-#[derive(Template)] // this will generate the code...
-#[template(path = "device.xml")] // using the template in this path, relative
-                                 // to the `templates` dir in the crate root
-struct DeviceXMLTemplate<'a> {
-    // the name of the struct can be anything
-    friendly_name: &'a str,
-    device_model: &'a str,
-    device_version: &'a str,
-    uid: &'a str,
-    host: &'a str,
-    port: u16,
+async fn device_xml<T: StationProvider>(data: web::Data<AppState<T>>) -> HttpResponse {
+    let result = crate::xml_templates::device_xml::<T>(&data.config, &data.service, data.port);
+    HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
-async fn device_xml(data: web::Data<AppState>) -> HttpResponse {
-    let service = &data.service;
-    let t = DeviceXMLTemplate {
-        friendly_name: &service.geo.name,
-        device_model: &data.config.device_model,
-        device_version: &data.config.device_version,
-        uid: &service.uuid,
-        host: &data.config.bind_address,
-        port: data.port,
-    };
-    HttpResponse::Ok()
-        .content_type("text/xml")
-        .body(t.render().unwrap())
+async fn epg_xml<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
+    let stations_mutex = data.service.stations();
+    let stations = &stations_mutex.lock().unwrap();
+    let result = crate::xml_templates::epg_xml(stations);
+    HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
 #[derive(Serialize)]
@@ -52,13 +42,13 @@ struct DiscoverData {
     LineupURL: String,
 }
 
-async fn discover(data: web::Data<AppState>) -> impl Responder {
+async fn discover<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let uuid = &data.config.uuid;
     let device_id = usize::from_str_radix(&uuid[..8], 16).unwrap();
     let checksum = crate::utils::hdhr_checksum(device_id); // TODO: FIX!
     let valid_id = format!("{:x}", checksum + device_id);
     let response = DiscoverData {
-        FriendlyName: data.service.geo.name.clone(),
+        FriendlyName: data.service.geo().name.clone(),
         Manufacturer: "locast2dvr".to_string(),
         ModelNumber: data.config.device_model.clone(),
         FirmwareName: data.config.device_firmware.clone(),
@@ -84,7 +74,7 @@ struct LineupStatus {
     Found: u8,
     SourceList: Option<Vec<String>>,
 }
-async fn lineup_status(data: web::Data<AppState>) -> impl Responder {
+async fn lineup_status<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let station_scan = data.station_scan.lock().unwrap();
     let response = if *station_scan {
         LineupStatus {
@@ -104,22 +94,15 @@ async fn lineup_status(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(response)
 }
 
-fn name_only(value: &str) -> &str {
-    match Regex::new(r"\d+\.\d+ (.+)").unwrap().captures(value) {
-        Some(c) => c.get(1).map_or("", |m| m.as_str()),
-        None => &value,
-    }
-}
-
-async fn tuner_m3u(data: web::Data<AppState>) -> impl Responder {
+async fn tuner_m3u<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let mut builder = Builder::default();
     builder.append("#EXTM3U\n");
     let stations_mutex = data.service.stations();
     let stations = stations_mutex.lock().unwrap();
 
     for station in stations.iter() {
-        let call_sign = name_only(&station.callSign.or(&station.name));
-        let city = &data.service.geo.name;
+        let call_sign = crate::utils::name_only(&station.callSign.or(&station.name));
+        let city = &data.service.geo().name;
         let logo = station.logoUrl.or(&station.logo226Url);
         let channel = station.channel.as_ref().unwrap();
         let groups = if NETWORKS.contains(&call_sign) {
@@ -151,7 +134,7 @@ struct LineupJson {
     URL: String,
 }
 
-async fn lineup_json(data: web::Data<AppState>) -> impl Responder {
+async fn lineup_json<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let stations_mutex = data.service.stations();
     let stations = stations_mutex.lock().unwrap();
 
@@ -172,34 +155,119 @@ async fn lineup_json(data: web::Data<AppState>) -> impl Responder {
 
     HttpResponse::Ok().json(lineup)
 }
-async fn show_config(data: web::Data<AppState>) -> impl Responder {
+async fn show_config<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let mut config = (*data.config).clone();
     config.password = "*******".to_string();
     HttpResponse::Ok().json(config)
 }
 
-async fn epg(data: web::Data<AppState>) -> impl Responder {
+async fn epg<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let stations_mutex = data.service.stations();
     let stations = &*stations_mutex.lock().unwrap();
     HttpResponse::Ok().json(stations)
 }
 
-async fn watch(req: HttpRequest) -> impl Responder {
+async fn watch_m3u<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
     let id = req.match_info().get("id").unwrap();
+    let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
+    let url = service.station_stream_uri(id);
+    HttpResponse::TemporaryRedirect()
+        .header(LOCATION, url)
+        .finish()
+}
 
-    HttpResponse::Ok().body(format!("watch: {}", id))
+async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
+    let id = req.match_info().get("id").unwrap();
+    let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
+    let url = service.station_stream_uri(id);
+
+    let stream = StreamBody::new(url);
+
+    HttpResponse::Ok()
+        // .content_type("video/mpeg; codecs='avc1.4D401E'")
+        .streaming(stream)
+}
+
+struct StreamBody {
+    url: String,
+    start_time: DateTime<Utc>,
+    segments: VecDeque<Segment>,
+    total_secs_served: u64,
+}
+
+#[derive(Debug)]
+struct Segment {
+    url: String,
+    played: bool,
+}
+impl PartialEq for Segment {
+    fn eq(&self, other: &Self) -> bool {
+        self.url == other.url
+    }
+}
+
+impl StreamBody {
+    pub fn new(url: String) -> StreamBody {
+        StreamBody {
+            url,
+            start_time: Utc::now(),
+            segments: VecDeque::new(),
+            total_secs_served: 0,
+        }
+    }
+}
+
+impl Stream for StreamBody {
+    type Item = Result<actix_web::web::Bytes, Error>;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        let m3u_data = crate::utils::get(&self.url, None).text().unwrap();
+        let media_playlist = hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()).unwrap();
+        let base_url = base_url(Url::parse(&self.url).unwrap());
+
+        for media_segment in media_playlist.segments {
+            let (_i, ms) = media_segment;
+            let absolute_uri = base_url.join(ms.uri()).unwrap();
+            let s = Segment {
+                url: absolute_uri.to_string(),
+                played: false,
+            };
+            if !self.segments.contains(&s) {
+                println!("Added {:?}", &s);
+                self.segments.push_back(s);
+            }
+        }
+
+        // Find first unplayed segment
+        let first = self.segments.iter_mut().find(|s| !s.played).unwrap();
+
+        let chunk = crate::utils::get(&first.url, None)
+            .bytes()
+            .unwrap()
+            .to_vec();
+        first.played = true;
+        println!("Playing: {:?}", first);
+
+        return std::task::Poll::Ready(Some(Ok(actix_web::web::Bytes::from(chunk))));
+    }
 }
 
 // #[derive(Clone)]
-struct AppState {
+struct AppState<T: StationProvider> {
     config: Arc<Config>,
-    service: Arc<LocastService>,
+    service: T,
     port: u16,
     station_scan: Mutex<bool>,
 }
 
 #[actix_web::main]
-pub async fn start(services: Vec<Arc<LocastService>>, config: Arc<Config>) -> std::io::Result<()> {
+pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
+    services: Vec<T>,
+    config: Arc<Config>,
+) -> std::io::Result<()> {
     let servers: Vec<Server> = services
         .into_iter()
         .enumerate()
@@ -207,24 +275,26 @@ pub async fn start(services: Vec<Arc<LocastService>>, config: Arc<Config>) -> st
             let port = config.port + i as u16;
             let bind_address = &config.bind_address;
             println!("Starting http server on http://{}:{}", bind_address, port);
-            let app_state = web::Data::new(AppState {
+            let app_state = web::Data::new(AppState::<T> {
                 config: config.clone(),
                 service: service.clone(),
-                port: port,
+                port,
                 station_scan: Mutex::new(false),
             });
             HttpServer::new(move || {
                 App::new()
                     .app_data(app_state.clone())
-                    .route("/", web::get().to(device_xml))
-                    .route("/device.xml", web::get().to(device_xml))
-                    .route("/discover.json", web::get().to(discover))
-                    .route("/lineup_status.json", web::get().to(lineup_status))
-                    .route("/tuner.m3u", web::get().to(tuner_m3u))
-                    .route("/lineup.json", web::get().to(lineup_json))
-                    .route("/epg", web::get().to(epg))
-                    .route("/config", web::get().to(show_config))
-                    .service(web::resource("/watch/{id}").route(web::get().to(watch)))
+                    .route("/", web::get().to(device_xml::<T>))
+                    .route("/device.xml", web::get().to(device_xml::<T>))
+                    .route("/discover.json", web::get().to(discover::<T>))
+                    .route("/lineup_status.json", web::get().to(lineup_status::<T>))
+                    .route("/tuner.m3u", web::get().to(tuner_m3u::<T>))
+                    .route("/lineup.json", web::get().to(lineup_json::<T>))
+                    .route("/epg", web::get().to(epg::<T>))
+                    .route("/epg.xml", web::get().to(epg_xml::<T>))
+                    .route("/config", web::get().to(show_config::<T>))
+                    .service(web::resource("/watch/{id}.m3u").route(web::get().to(watch_m3u::<T>)))
+                    .service(web::resource("/watch/{id}").route(web::get().to(watch::<T>)))
             })
             .bind((bind_address.to_owned(), port))
             .unwrap()
