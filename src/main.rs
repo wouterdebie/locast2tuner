@@ -5,20 +5,14 @@ mod config;
 mod credentials;
 mod fcc_facilities;
 mod http;
+mod multiplexer;
 mod service;
 mod utils;
 mod xml_templates;
-use service::LocastServiceArc;
 use simple_error::SimpleError;
 use std::sync::Arc;
 
 fn main() -> Result<(), SimpleError> {
-    // Get config from command line and config file
-    // let config = match config::Config::from_args_and_file() {
-    //     Ok(c) => c,
-    //     Err(e) => return Err(e),
-    // };
-
     let conf = Arc::new(config::Config::from_args_and_file()?);
     println!("{:?}", conf);
 
@@ -29,8 +23,9 @@ fn main() -> Result<(), SimpleError> {
     let fcc_facilities = Arc::new(fcc_facilities::FCCFacilities::new(conf.clone()));
 
     // Create Locast Services
-    let services: Vec<LocastServiceArc> = if let Some(zipcodes) = &conf.override_zipcodes {
-        zipcodes.into_iter()
+    let services = if let Some(zipcodes) = &conf.override_zipcodes {
+        zipcodes
+            .into_iter()
             .map(|x| {
                 service::LocastService::new(
                     conf.clone(),
@@ -49,8 +44,20 @@ fn main() -> Result<(), SimpleError> {
         )]
     };
 
-    match http::start::<LocastServiceArc>(services, conf.clone()) {
-        Ok(()) => Ok(()),
-        Err(_) => return Err(SimpleError::new("Failed to start servers")),
+    let mp = vec![multiplexer::Multiplexer::new(
+        services.clone(),
+        conf.clone(),
+    )];
+
+    if conf.multiplex {
+        match http::start(mp, conf.clone()) {
+            Ok(()) => Ok(()),
+            Err(_) => return Err(SimpleError::new("Failed to start servers")),
+        }
+    } else {
+        match http::start(services, conf.clone()) {
+            Ok(()) => Ok(()),
+            Err(_) => return Err(SimpleError::new("Failed to start servers")),
+        }
     }
 }

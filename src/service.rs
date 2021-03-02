@@ -276,10 +276,10 @@ fn detect_callsign(input: &str) -> Option<(&str, &str)> {
 pub struct Geo {
     pub latitude: f64,
     pub longitude: f64,
-    DMA: String,
+    pub DMA: String,
     pub name: String,
-    active: bool,
-    timezone: Option<String>,
+    pub active: bool,
+    pub timezone: Option<String>,
 }
 
 impl From<&Option<String>> for Geo {
@@ -296,7 +296,7 @@ impl From<&Option<String>> for Geo {
 }
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Station {
     pub active: bool,
     pub callSign: String,
@@ -315,10 +315,10 @@ pub struct Station {
     pub tivoId: Option<i64>,
     pub transcodeId: i64,
 }
-type Stations = Arc<Mutex<Vec<Station>>>;
+pub type Stations = Arc<Mutex<Vec<Station>>>;
 
 #[allow(non_snake_case)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Listing {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub airdate: Option<i64>,

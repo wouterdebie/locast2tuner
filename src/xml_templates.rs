@@ -44,12 +44,12 @@ pub fn epg_xml(stations: &Vec<Station>) -> String {
         <tv generator-info-name="locast2tuner">
         for station in (stations) {
             <channel id={format!("channel.{}",station.id)}>
-                <display-name lang="en">{name_only(&station.callSign)}</display-name>
-                <display-name lang="en">{station.callSign}</display-name>
-                <display-name lang="en">{station.name}</display-name>
-                <display-name lang="en">{station.channel.as_ref().unwrap()}</display-name>
+                <display-name lang="en">{encode_minimal(name_only(&station.callSign))}</display-name>
+                <display-name lang="en">{encode_minimal(&station.callSign)}</display-name>
+                <display-name lang="en">{encode_minimal(&station.name)}</display-name>
+                <display-name lang="en">{encode_minimal(&station.channel.as_ref().unwrap())}</display-name>
                 <display-name lang="en">{station.id}</display-name>
-                <icon src={station.logoUrl} />
+                <icon src={encode_minimal(&station.logoUrl)} />
             </channel>
         }
         for station in (stations){

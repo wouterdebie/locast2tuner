@@ -1,7 +1,6 @@
 use crate::utils::base_url;
 use crate::{config::Config, service::StationProvider};
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use chrono::{DateTime, Utc};
 use futures::{future, Stream};
 use reqwest::{header::LOCATION, Url};
 use serde::Serialize;
@@ -190,9 +189,7 @@ async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder
 
 struct StreamBody {
     url: String,
-    start_time: DateTime<Utc>,
     segments: VecDeque<Segment>,
-    total_secs_served: u64,
 }
 
 #[derive(Debug)]
@@ -210,9 +207,7 @@ impl StreamBody {
     pub fn new(url: String) -> StreamBody {
         StreamBody {
             url,
-            start_time: Utc::now(),
             segments: VecDeque::new(),
-            total_secs_served: 0,
         }
     }
 }
@@ -274,7 +269,12 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
         .map(|(i, service)| {
             let port = config.port + i as u16;
             let bind_address = &config.bind_address;
-            println!("Starting http server on http://{}:{}", bind_address, port);
+            println!(
+                "Starting http server for {} on http://{}:{}",
+                service.geo().name,
+                bind_address,
+                port
+            );
             let app_state = web::Data::new(AppState::<T> {
                 config: config.clone(),
                 service: service.clone(),
