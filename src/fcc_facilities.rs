@@ -3,6 +3,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use log::info;
 use serde::Deserialize;
 use std::{
     collections::HashMap,
@@ -80,7 +81,7 @@ fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
 
     thread::spawn(move || loop {
         thread::sleep(time::Duration::from_secs(CHECK_INTERVAL));
-        println!("Reloading FCC facilities..");
+        info!("Reloading FCC facilities..");
         let cache_file = config.cache_directory.join("facilities");
         let new_facilties = load(&cache_file);
         let mut facilities = facilities_map.lock().unwrap();
@@ -104,11 +105,11 @@ fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
     let locast_dmas: Vec<LocastDMA> = crate::utils::get(DMA_URL, None).json().unwrap();
 
     let downloaded = if cache_file.exists() && !path_expired(&cache_file) {
-        println!("Using cached FCC facilities at {}", cache_file.display());
+        info!("Using cached FCC facilities at {}", cache_file.display());
         reader = Box::new(File::open(cache_file).unwrap());
         false
     } else {
-        println!("Downloading FCC facilities");
+        info!("Downloading FCC facilities");
         let zipfile = crate::utils::get(FACILITIES_URL, None).bytes().unwrap();
         zip = zip::ZipArchive::new(std::io::Cursor::new(zipfile)).unwrap();
         reader = Box::new(zip.by_name("facility.dat").unwrap());
@@ -182,7 +183,7 @@ fn write_cache_file(cache_file: &PathBuf, contents: &[u8]) {
 
     match file.write_all(contents) {
         Err(why) => panic!("couldn't write to {}: {}", display, why),
-        Ok(_) => println!("Cached FCC facilities to {}", display),
+        Ok(_) => info!("Cached FCC facilities to {}", display),
     }
 }
 

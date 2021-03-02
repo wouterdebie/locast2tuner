@@ -7,14 +7,40 @@ mod fcc_facilities;
 mod http;
 mod multiplexer;
 mod service;
+mod streaming;
 mod utils;
 mod xml_templates;
+use chrono::Local;
+use env_logger::Builder;
+use log::{info, LevelFilter};
 use simple_error::SimpleError;
+use std::io::Write;
 use std::sync::Arc;
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 fn main() -> Result<(), SimpleError> {
     let conf = Arc::new(config::Config::from_args_and_file()?);
-    println!("{:?}", conf);
+    Builder::new()
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "{} [{}] - {}",
+                Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                record.level(),
+                record.args()
+            )
+        })
+        .filter(None, LevelFilter::Info)
+        .init();
+
+    info!(
+        "locast2tuner {} on {} {} starting..",
+        VERSION,
+        sys_info::os_type().unwrap(),
+        sys_info::os_release().unwrap()
+    );
+
+    info!("UUID: {}", conf.uuid);
 
     // Login to locast and get credentials we pass around
     let credentials = Arc::new(credentials::LocastCredentials::new(conf.clone()));

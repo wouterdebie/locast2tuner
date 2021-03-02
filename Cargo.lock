@@ -808,6 +808,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_logger"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17392a012ea30ef05a610aa97dfb49496e71c9f676b27879922ea5bdf60d9d3f"
+dependencies = [
+ "atty",
+ "humantime",
+ "log",
+ "regex",
+ "termcolor",
+]
+
+[[package]]
 name = "flate2"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1129,8 +1142,6 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a138d4ea26604c9dc52bad8143b2530481814e8459fcc76eea132b6049d1768f"
 dependencies = [
- "backtrace",
- "chrono",
  "derive_builder",
  "derive_more",
  "hex",
@@ -1189,6 +1200,12 @@ name = "httpdate"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "494b4d60369511e7dea41cf646832512a94e542f68bb9c49e54518e0f468eb47"
+
+[[package]]
+name = "humantime"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
@@ -1350,6 +1367,7 @@ dependencies = [
  "clap 3.0.0-beta.2",
  "clap_conf",
  "dirs",
+ "env_logger",
  "format_xml",
  "futures",
  "fuzzy-matcher",
@@ -1362,6 +1380,7 @@ dependencies = [
  "serde_json",
  "simple-error",
  "string-builder",
+ "sys-info",
  "timer",
  "tz-search",
  "url",
@@ -2319,6 +2338,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
+]
+
+[[package]]
+name = "sys-info"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f3e7ba888a12ddcf0084e36ae4609b055845f38022d1946b67356fbc27d5795"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]

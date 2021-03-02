@@ -1,5 +1,6 @@
 use crate::config::Config;
 use chrono::{DateTime, Utc};
+use log::info;
 use reqwest;
 use serde::Deserialize;
 use serde_json::json;
@@ -39,7 +40,7 @@ impl LocastCredentials {
         if (Utc::now() - *last_login).num_seconds() < TOKEN_LIFETIME {
             return;
         }
-        println!("Login token expired: {:?}", self.last_login);
+        info!("Login token expired: {:?}", self.last_login);
 
         let mut token = self.token.lock().unwrap();
         *token = login(&(self.config.username), &(self.config.password));
@@ -48,7 +49,7 @@ impl LocastCredentials {
 }
 
 fn login<'a>(username: &str, password: &str) -> String {
-    println!("Logging in with {}", username);
+    info!("Logging in with {}", username);
     let credentials = json!({
         "username": username,
         "password": password
@@ -64,7 +65,7 @@ fn login<'a>(username: &str, password: &str) -> String {
     if !resp.status().is_success() {
         panic!("Login failed");
     } else {
-        println!("Login succeeded!");
+        info!("Login succeeded!");
     }
 
     resp.json::<HashMap<String, String>>().unwrap()["token"].clone()

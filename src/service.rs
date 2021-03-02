@@ -2,6 +2,7 @@ use crate::{
     config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get,
 };
 use chrono::Utc;
+use log::info;
 use regex::Regex;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -101,7 +102,6 @@ impl StationProvider for LocastServiceArc {
         );
 
         let response: WatchResponse = get(&url, Some(&self.credentials.token())).json().unwrap();
-        println!("{:?}", response);
         let m3u_data = get(&response.streamUrl, None).text().unwrap();
         let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
 
@@ -209,9 +209,9 @@ fn build_stations(
     config: &Arc<Config>,
     fcc_facilities: &Arc<FCCFacilities>,
 ) -> Vec<Station> {
-    println!(
-        "Loading stations for {} (cache: {}, cache timeout: {}, days: {}",
-        geo.name, config.disable_station_cache, config.cache_timeout, config.days
+    info!(
+        "Loading stations for {} (cache: {}, cache timeout: {}, days: {})..",
+        geo.name, !config.disable_station_cache, config.cache_timeout, config.days
     );
 
     let mut stations: Vec<Station> = Vec::new();

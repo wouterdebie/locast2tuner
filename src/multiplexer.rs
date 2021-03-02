@@ -3,6 +3,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use log::info;
+
 use crate::{
     config::Config,
     service::{Geo, LocastServiceArc, Station, StationProvider, Stations},
@@ -38,6 +40,7 @@ impl StationProvider for Arc<Multiplexer> {
     fn stations(&self) -> Stations {
         let mut all_stations: Vec<Station> = Vec::new();
         let services = self.services.clone();
+        let services_len = services.len();
         for service in services {
             let stations_mutex = service.stations();
             let stations = stations_mutex.lock().unwrap();
@@ -49,6 +52,11 @@ impl StationProvider for Arc<Multiplexer> {
                 all_stations.push(station);
             }
         }
+        info!(
+            "Got {} stations for {} cities",
+            all_stations.len(),
+            services_len
+        );
         Arc::new(Mutex::new(all_stations))
     }
 

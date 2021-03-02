@@ -1,15 +1,11 @@
-use crate::utils::base_url;
+use crate::streaming::StreamBody;
 use crate::{config::Config, service::StationProvider};
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use futures::{future, Stream};
-use reqwest::{header::LOCATION, Url};
+use futures::future;
+use log::info;
+use reqwest::header::LOCATION;
 use serde::Serialize;
-use std::{
-    collections::VecDeque,
-    convert::TryFrom,
-    io::Error,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 use string_builder::Builder;
 
 const NETWORKS: [&'static str; 6] = ["ABC", "CBS", "NBC", "FOX", "CW", "PBS"];
@@ -101,7 +97,7 @@ async fn tuner_m3u<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Res
 
     for station in stations.iter() {
         let call_sign = crate::utils::name_only(&station.callSign.or(&station.name));
-        let city = &data.service.geo().name;
+        let city = station.city.as_ref().unwrap();
         let logo = station.logoUrl.or(&station.logo226Url);
         let channel = station.channel.as_ref().unwrap();
         let groups = if NETWORKS.contains(&call_sign) {
@@ -110,9 +106,15 @@ async fn tuner_m3u<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Res
             city.to_owned()
         };
 
+        let tvg_name = if data.config.multiplex {
+            format!("{} ({})", call_sign, city)
+        } else {
+            call_sign.to_string()
+        };
+
         builder.append(format!(
             "#EXTINF:-1 tvg-id=\"channel.{}\" tvg-name=\"{}\" tvg-logo=\"{}\" tvg-chno=\"{}\" group-title=\"{}\", {}",
-            &station.id, &call_sign, &logo, &channel, &groups, &call_sign
+            &station.id, &call_sign, &logo, &channel, &groups, &tvg_name
         ));
 
         let url = format!(
@@ -187,69 +189,6 @@ async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder
         .streaming(stream)
 }
 
-struct StreamBody {
-    url: String,
-    segments: VecDeque<Segment>,
-}
-
-#[derive(Debug)]
-struct Segment {
-    url: String,
-    played: bool,
-}
-impl PartialEq for Segment {
-    fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
-    }
-}
-
-impl StreamBody {
-    pub fn new(url: String) -> StreamBody {
-        StreamBody {
-            url,
-            segments: VecDeque::new(),
-        }
-    }
-}
-
-impl Stream for StreamBody {
-    type Item = Result<actix_web::web::Bytes, Error>;
-
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        _cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
-        let m3u_data = crate::utils::get(&self.url, None).text().unwrap();
-        let media_playlist = hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()).unwrap();
-        let base_url = base_url(Url::parse(&self.url).unwrap());
-
-        for media_segment in media_playlist.segments {
-            let (_i, ms) = media_segment;
-            let absolute_uri = base_url.join(ms.uri()).unwrap();
-            let s = Segment {
-                url: absolute_uri.to_string(),
-                played: false,
-            };
-            if !self.segments.contains(&s) {
-                println!("Added {:?}", &s);
-                self.segments.push_back(s);
-            }
-        }
-
-        // Find first unplayed segment
-        let first = self.segments.iter_mut().find(|s| !s.played).unwrap();
-
-        let chunk = crate::utils::get(&first.url, None)
-            .bytes()
-            .unwrap()
-            .to_vec();
-        first.played = true;
-        println!("Playing: {:?}", first);
-
-        return std::task::Poll::Ready(Some(Ok(actix_web::web::Bytes::from(chunk))));
-    }
-}
-
 // #[derive(Clone)]
 struct AppState<T: StationProvider> {
     config: Arc<Config>,
@@ -269,7 +208,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
         .map(|(i, service)| {
             let port = config.port + i as u16;
             let bind_address = &config.bind_address;
-            println!(
+            info!(
                 "Starting http server for {} on http://{}:{}",
                 service.geo().name,
                 bind_address,
@@ -302,7 +241,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
         })
         .collect();
 
-    println!("Server started..");
+    info!("Server started..");
     future::try_join_all(servers).await?;
     Ok(())
 }
