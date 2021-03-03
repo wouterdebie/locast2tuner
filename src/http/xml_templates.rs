@@ -6,10 +6,7 @@ use crate::utils::format_time_local_iso;
 use crate::utils::name_only;
 use crate::utils::quality;
 use crate::utils::split;
-use crate::{
-    config::Config,
-    service::{Station, StationProvider},
-};
+use crate::{config::Config, service::station::Station, service::stationprovider::StationProvider};
 use chrono_tz::Tz;
 use format_xml::xml;
 use htmlescape::encode_minimal;
@@ -36,6 +33,21 @@ pub fn device_xml<T: StationProvider>(config: &Config, service: &T, port: u16) -
     .to_string();
     r
 }
+
+pub fn lineup_xml(config: &Config, stations: &Vec<Station>, port: u16) -> String {
+    let r = xml! {
+        <Lineup>
+            for station in (stations) {
+                <Program>
+                    <GuideNumber>{encode_minimal(&station.channel_remapped.as_ref().unwrap_or(&station.channel.as_ref().unwrap()))}</GuideNumber>
+                    <GuideName>{encode_minimal(&station.name)}</GuideName>
+                    <URL>{"http://"}{config.bind_address}{":"}{port}{"/watch/"}{station.id}</URL>
+                </Program>
+            }
+        </Lineup>
+    }.to_string();
+    r
+}
 pub fn epg_xml(stations: &Vec<Station>) -> String {
     let xml_version = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
     let doctype =
@@ -44,10 +56,10 @@ pub fn epg_xml(stations: &Vec<Station>) -> String {
         <tv generator-info-name="locast2tuner">
         for station in (stations) {
             <channel id={format!("channel.{}",station.id)}>
-                <display-name lang="en">{encode_minimal(name_only(&station.callSign))}</display-name>
-                <display-name lang="en">{encode_minimal(&station.callSign)}</display-name>
+                <display-name lang="en">{encode_minimal(name_only(&station.callSign_remapped.as_ref().unwrap_or(&station.callSign)))}</display-name>
+                <display-name lang="en">{encode_minimal(&station.callSign_remapped.as_ref().unwrap_or(&station.callSign))}</display-name>
                 <display-name lang="en">{encode_minimal(&station.name)}</display-name>
-                <display-name lang="en">{encode_minimal(&station.channel.as_ref().unwrap())}</display-name>
+                <display-name lang="en">{encode_minimal(&station.channel_remapped.as_ref().unwrap_or(&station.channel.as_ref().unwrap()))}</display-name>
                 <display-name lang="en">{station.id}</display-name>
                 <icon src={encode_minimal(&station.logoUrl)} />
             </channel>
@@ -79,10 +91,10 @@ pub fn epg_xml(stations: &Vec<Station>) -> String {
                     }
                     if let Some(genres) = (&program.genres) {
                         for genre in (split(genres, ", ")){
-                            <category lang="en">{genre}</category>
+                            <category lang="en">{encode_minimal(&genre)}</category>
                         }
                     }
-                    <category lang="en">{program.showType}</category>
+                    <category lang="en">{encode_minimal(&program.showType)}</category>
                     <length units="seconds">{program.duration}</length>
 
                     if (program.preferredImage.is_some() && program.preferredImageHeight.is_some() && program.preferredImageWidth.is_some()){

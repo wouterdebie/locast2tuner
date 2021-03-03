@@ -4,10 +4,24 @@ use log::info;
 use reqwest::Url;
 use std::collections::VecDeque;
 use std::{convert::TryFrom, io::Error};
+use uuid::Uuid;
 
 pub struct StreamBody {
     url: String,
     segments: VecDeque<Segment>,
+    stream_id: String,
+}
+
+impl StreamBody {
+    pub fn new(url: String) -> StreamBody {
+        let stream_id = Uuid::new_v4().to_string();
+        info!("Stream {} - starting", &stream_id[0..7]);
+        StreamBody {
+            url,
+            segments: VecDeque::new(),
+            stream_id,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -21,15 +35,6 @@ impl PartialEq for Segment {
     }
 }
 
-impl StreamBody {
-    pub fn new(url: String) -> StreamBody {
-        StreamBody {
-            url,
-            segments: VecDeque::new(),
-        }
-    }
-}
-
 impl Stream for StreamBody {
     type Item = Result<actix_web::web::Bytes, Error>;
 
@@ -40,6 +45,7 @@ impl Stream for StreamBody {
         let m3u_data = crate::utils::get(&self.url, None).text().unwrap();
         let media_playlist = hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()).unwrap();
         let base_url = base_url(Url::parse(&self.url).unwrap());
+        let stream_id = &self.stream_id.clone()[0..7];
 
         for media_segment in media_playlist.segments {
             let (_i, ms) = media_segment;
@@ -49,9 +55,14 @@ impl Stream for StreamBody {
                 played: false,
             };
             if !self.segments.contains(&s) {
-                info!("Added segment {:?}", &s);
+                info!("Stream {} - added segment {:?}", stream_id, &s.url);
                 self.segments.push_back(s);
             }
+        }
+
+        if self.segments.len() >= 30 {
+            info!("Stream {} - draining 10 segments", stream_id);
+            self.segments.drain(0..10);
         }
 
         // Find first unplayed segment
@@ -62,7 +73,7 @@ impl Stream for StreamBody {
             .unwrap()
             .to_vec();
         first.played = true;
-        info!("Playing: segment {:?}", first);
+        info!("Stream {} - playing: segment {:?}", stream_id, first.url);
 
         return std::task::Poll::Ready(Some(Ok(actix_web::web::Bytes::from(chunk))));
     }

@@ -7,6 +7,11 @@ use reqwest::{
     Url,
 };
 
+pub trait Or {
+    /// Return `self` if it's not empty, otherwise `other`
+    fn or<'a>(&'a self, other: &'a str) -> &str;
+}
+
 pub fn get(uri: &str, token: Option<&str>) -> Response {
     let mut client = reqwest::blocking::Client::new()
         .get(uri)

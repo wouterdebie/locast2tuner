@@ -9,7 +9,8 @@ edition = "2018"
 spec = "config_spec.toml"
 
 [dependencies]
-actix-web = "3"
+actix-web = "4.0.0-beta.3"
+atty = "0.2"
 bytes = "1.0.1"
 chrono = "0.4.19"
 chrono-tz = "0.5.3"
@@ -23,6 +24,7 @@ fuzzy-matcher = "0.3.7"
 hls_m3u8 = "0.4"
 htmlescape = "0.3.1"
 log = "0.4.14"
+prettytable-rs = "^0.8"
 regex = "1"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = {version = "1.0.123", features = ["derive"]}

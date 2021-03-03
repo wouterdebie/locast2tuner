@@ -1,3 +1,10 @@
+pub mod multiplexer;
+pub mod station;
+pub mod stationprovider;
+use self::{
+    station::{Station, Stations},
+    stationprovider::StationProvider,
+};
 use crate::{
     config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get,
 };
@@ -5,9 +12,11 @@ use chrono::Utc;
 use log::info;
 use regex::Regex;
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde_json::Value;
 use std::{
     borrow::Cow,
+    collections::HashMap,
     convert::{From, TryFrom},
     fmt,
     str::FromStr,
@@ -25,7 +34,7 @@ pub struct LocastService {
     config: Arc<Config>,
     credentials: Arc<LocastCredentials>,
     fcc_facilities: Arc<FCCFacilities>,
-    zipcode: Option<String>,
+    pub zipcode: Option<String>,
     pub geo: Arc<Geo>,
     pub uuid: String,
     stations: Stations,
@@ -101,13 +110,21 @@ impl StationProvider for LocastServiceArc {
             WATCH_URL, id, self.geo.latitude, self.geo.longitude
         );
 
-        let response: WatchResponse = get(&url, Some(&self.credentials.token())).json().unwrap();
-        let m3u_data = get(&response.streamUrl, None).text().unwrap();
+        #[allow(non_snake_case)]
+        #[derive(Deserialize, Debug)]
+        struct WatchResponse {
+            streamUrl: String,
+        }
+
+        let response: HashMap<String, Value> =
+            get(&url, Some(&self.credentials.token())).json().unwrap();
+        let stream_url = response.get("streamUrl").unwrap().as_str().unwrap();
+        let m3u_data = get(stream_url, None).text().unwrap();
         let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
 
         // Make this nicer with a match
         if master_playlist.is_err() {
-            response.streamUrl
+            stream_url.to_owned()
         } else {
             let mut vs = master_playlist.unwrap().variant_streams;
             vs.sort_by(|a, b| {
@@ -127,14 +144,14 @@ impl StationProvider for LocastServiceArc {
             });
             let variant = vs.pop().unwrap();
 
-            let stream_url = match variant {
+            let variant_url = match variant {
                 hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
                 _ => Cow::Borrowed(""),
             };
 
-            let full_url = Url::parse(&response.streamUrl)
+            let full_url = Url::parse(&stream_url)
                 .unwrap()
-                .join(&stream_url.to_string())
+                .join(&variant_url.to_string())
                 .unwrap()
                 .to_string();
 
@@ -149,19 +166,18 @@ impl StationProvider for LocastServiceArc {
     fn uuid(&self) -> String {
         self.uuid.to_owned()
     }
-}
 
-pub trait StationProvider {
-    fn station_stream_uri(&self, id: &str) -> String;
-    fn stations(&self) -> Stations;
-    fn geo(&self) -> Arc<Geo>;
-    fn uuid(&self) -> String;
-}
+    fn zipcode(&self) -> String {
+        if let Some(z) = &self.zipcode {
+            z.to_owned()
+        } else {
+            "".to_string()
+        }
+    }
 
-#[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
-struct WatchResponse {
-    streamUrl: String,
+    fn services(&self) -> Vec<LocastServiceArc> {
+        Vec::new()
+    }
 }
 
 impl fmt::Display for LocastService {
@@ -293,78 +309,4 @@ impl From<&Option<String>> for Geo {
         geo.timezone = Some(tz_search::lookup(geo.latitude, geo.longitude).unwrap());
         geo
     }
-}
-
-#[allow(non_snake_case)]
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Station {
-    pub active: bool,
-    pub callSign: String,
-    pub channel: Option<String>,
-    pub city: Option<String>,
-    pub dma: i64,
-    pub id: i64,
-    pub listings: Vec<Listing>,
-    pub logo226Url: String,
-    pub logoUrl: String,
-    pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sequence: Option<i64>,
-    pub stationId: String,
-    pub timezone: Option<String>,
-    pub tivoId: Option<i64>,
-    pub transcodeId: i64,
-}
-pub type Stations = Arc<Mutex<Vec<Station>>>;
-
-#[allow(non_snake_case)]
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct Listing {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub airdate: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub audioProperties: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub directors: Option<String>,
-    pub duration: i64,
-    pub entityType: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub episodeNumber: Option<i16>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub episodeTitle: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub genres: Option<String>,
-    pub hasImageArtwork: bool,
-    pub hasSeriesArtwork: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub isNew: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub preferredImage: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub preferredImageHeight: Option<i16>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub preferredImageWidth: Option<i16>,
-    pub programId: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub rating: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub releaseDate: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub releaseYear: Option<i16>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seasonNumber: Option<i16>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub seriesId: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub shortDescription: Option<String>,
-    pub showType: String,
-    pub startTime: i64,
-    pub stationId: i64,
-    pub title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub topCast: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub videoProperties: Option<String>,
 }

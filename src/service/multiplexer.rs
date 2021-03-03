@@ -29,10 +29,12 @@ type MultiplexerArc = Arc<Multiplexer>;
 
 impl StationProvider for Arc<Multiplexer> {
     fn station_stream_uri(&self, id: &str) -> String {
+        // Make sure the station_id_service_map is loaded. Feels wrong to do it like this though.. Needs refactoring.
+        self.stations();
         self.station_id_service_map
             .lock()
             .unwrap()
-            .get(id)
+            .get(&id.to_string())
             .unwrap()
             .station_stream_uri(id)
     }
@@ -41,10 +43,26 @@ impl StationProvider for Arc<Multiplexer> {
         let mut all_stations: Vec<Station> = Vec::new();
         let services = self.services.clone();
         let services_len = services.len();
-        for service in services {
+        for (i, service) in services.into_iter().enumerate() {
             let stations_mutex = service.stations();
             let stations = stations_mutex.lock().unwrap();
-            for station in stations.iter().map(|s| s.clone()) {
+            for mut station in stations.iter().map(|s| s.clone()) {
+                if self.config.remap {
+                    let channel = station.channel.as_ref().unwrap();
+                    if let Ok(c) = channel.parse::<usize>() {
+                        station.channel_remapped = Some((c + 100 * i).to_string());
+                    } else if let Ok(c) = channel.parse::<f32>() {
+                        station.channel_remapped = Some((c + 100.0 * i as f32).to_string());
+                    } else {
+                        panic!(format!("Could not remap {}", channel));
+                    };
+
+                    // Convoluted.. let's fix this sometime..
+                    let new_call_sign = station
+                        .callSign
+                        .replace(channel, &station.channel_remapped.as_ref().unwrap());
+                    station.callSign_remapped = Some(new_call_sign);
+                }
                 self.station_id_service_map
                     .lock()
                     .unwrap()
@@ -73,5 +91,13 @@ impl StationProvider for Arc<Multiplexer> {
 
     fn uuid(&self) -> String {
         self.config.uuid.to_owned()
+    }
+
+    fn zipcode(&self) -> String {
+        "".to_string()
+    }
+
+    fn services(&self) -> Vec<LocastServiceArc> {
+        self.services.clone()
     }
 }
