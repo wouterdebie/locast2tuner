@@ -1,5 +1,6 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::Tz;
+use futures::{Future, TryFutureExt};
 use regex::Regex;
 use reqwest::{
     blocking::Response,
@@ -23,6 +24,21 @@ pub fn get(uri: &str, token: Option<&str>) -> Response {
     };
 
     let resp = client.send().unwrap();
+    if !resp.status().is_success() {
+        panic!(format!("Fetching {} failed: {:?}", uri, resp))
+    }
+
+    resp
+}
+
+pub async fn get_async(uri: &str, token: Option<&str>) -> reqwest::Response {
+    let mut client = reqwest::Client::new().get(uri).headers(construct_headers());
+    client = match token {
+        Some(t) => client.header("authorization", format!("Bearer {}", t)),
+        None => client,
+    };
+
+    let resp = client.send().await.unwrap();
     if !resp.status().is_success() {
         panic!(format!("Fetching {} failed: {:?}", uri, resp))
     }

@@ -7,8 +7,11 @@ use self::{
 };
 use crate::{
     config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get,
+    utils::get_async,
 };
+use actix_rt;
 use chrono::Utc;
+use futures::{executor, Future};
 use log::info;
 use regex::Regex;
 use reqwest::Url;
@@ -19,6 +22,7 @@ use std::{
     collections::HashMap,
     convert::{From, TryFrom},
     fmt,
+    pin::Pin,
     str::FromStr,
     sync::{Arc, Mutex},
     thread, time,
@@ -104,7 +108,7 @@ impl StationProvider for LocastServiceArc {
         }
     }
 
-    fn station_stream_uri(&self, id: &str) -> String {
+    fn station_stream_uri(&self, id: String) -> Pin<Box<dyn Future<Output = String> + '_>> {
         let url = format!(
             "{}/{}/{}/{}",
             WATCH_URL, id, self.geo.latitude, self.geo.longitude
@@ -116,47 +120,53 @@ impl StationProvider for LocastServiceArc {
             streamUrl: String,
         }
 
-        let response: HashMap<String, Value> =
-            get(&url, Some(&self.credentials.token())).json().unwrap();
-        let stream_url = response.get("streamUrl").unwrap().as_str().unwrap();
-        let m3u_data = get(stream_url, None).text().unwrap();
-        let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
+        let token = self.credentials.token().to_owned();
 
-        // Make this nicer with a match
-        if master_playlist.is_err() {
-            stream_url.to_owned()
-        } else {
-            let mut vs = master_playlist.unwrap().variant_streams;
-            vs.sort_by(|a, b| {
-                let ea = match a {
-                    hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
-                        stream_data.bandwidth()
-                    }
-                    _ => 0,
+        let s = async move {
+            let response: HashMap<String, Value> =
+                get_async(&url, Some(&token)).await.json().await.unwrap();
+
+            let stream_url = response.get("streamUrl").unwrap().as_str().unwrap();
+            let m3u_data = get_async(stream_url, None).await.text().await.unwrap();
+            let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
+
+            // Make this nicer with a match
+            if master_playlist.is_err() {
+                stream_url.to_owned()
+            } else {
+                let mut vs = master_playlist.unwrap().variant_streams;
+                vs.sort_by(|a, b| {
+                    let ea = match a {
+                        hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
+                            stream_data.bandwidth()
+                        }
+                        _ => 0,
+                    };
+                    let eb = match b {
+                        hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
+                            stream_data.bandwidth()
+                        }
+                        _ => 0,
+                    };
+                    ea.cmp(&eb)
+                });
+                let variant = vs.pop().unwrap();
+
+                let variant_url = match variant {
+                    hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
+                    _ => Cow::Borrowed(""),
                 };
-                let eb = match b {
-                    hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
-                        stream_data.bandwidth()
-                    }
-                    _ => 0,
-                };
-                ea.cmp(&eb)
-            });
-            let variant = vs.pop().unwrap();
 
-            let variant_url = match variant {
-                hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
-                _ => Cow::Borrowed(""),
-            };
+                let full_url = Url::parse(&stream_url)
+                    .unwrap()
+                    .join(&variant_url.to_string())
+                    .unwrap()
+                    .to_string();
 
-            let full_url = Url::parse(&stream_url)
-                .unwrap()
-                .join(&variant_url.to_string())
-                .unwrap()
-                .to_string();
-
-            full_url.to_string()
-        }
+                full_url.to_string()
+            }
+        };
+        Box::pin(s)
     }
 
     fn geo(&self) -> Arc<Geo> {

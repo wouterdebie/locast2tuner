@@ -42,6 +42,7 @@ impl Stream for StreamBody {
         mut self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
+        // TODO: FIX THIS
         let m3u_data = crate::utils::get(&self.url, None).text().unwrap();
         let media_playlist = hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()).unwrap();
         let base_url = base_url(Url::parse(&self.url).unwrap());

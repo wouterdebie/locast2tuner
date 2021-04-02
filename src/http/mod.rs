@@ -317,18 +317,18 @@ async fn epg<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder
 }
 
 async fn watch_m3u<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
-    let id = req.match_info().get("id").unwrap();
+    let id = req.match_info().get("id").unwrap().to_string();
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
-    let url = service.station_stream_uri(id);
+    let url = service.station_stream_uri(id).await;
     HttpResponse::TemporaryRedirect()
         .append_header((LOCATION, url))
         .finish()
 }
 
 async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
-    let id = req.match_info().get("id").unwrap();
+    let id = req.match_info().get("id").unwrap().to_string();
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
-    let url = service.station_stream_uri(id);
+    let url = service.station_stream_uri(id).await;
 
     let stream = StreamBody::new(url);
 

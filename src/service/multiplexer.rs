@@ -1,8 +1,10 @@
 use std::{
     collections::HashMap,
+    pin::Pin,
     sync::{Arc, Mutex},
 };
 
+use futures::Future;
 use log::info;
 
 use crate::{
@@ -28,15 +30,21 @@ impl Multiplexer {
 type MultiplexerArc = Arc<Multiplexer>;
 
 impl StationProvider for Arc<Multiplexer> {
-    fn station_stream_uri(&self, id: &str) -> String {
+    fn station_stream_uri(&self, id: String) -> Pin<Box<dyn Future<Output = String> + '_>> {
         // Make sure the station_id_service_map is loaded. Feels wrong to do it like this though.. Needs refactoring.
         self.stations();
-        self.station_id_service_map
+
+        let service = self
+            .station_id_service_map
             .lock()
             .unwrap()
             .get(&id.to_string())
             .unwrap()
-            .station_stream_uri(id)
+            .clone();
+
+        let res = async move {service.station_stream_uri(id).await };
+
+        Box::pin(res)
     }
 
     fn stations(&self) -> Stations {
