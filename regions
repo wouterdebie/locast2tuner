@@ -1,0 +1,32 @@
+This file is purely for documentation only. It contains working zip codes for known Locast regions.
+You can use this to override zip codes.
+
+Zip code, City, State
+--------------------
+98101, Seattle, WA
+94102, San Francisco, CA
+90210, Los Angeles, CA
+85006, Phoenix, AZ
+80123, Denver, CO
+57701, Rapid City, SD
+57103, Sioux Falls, SD
+51054, Sioux City, IA
+55111, Minneapolis, MN
+75001, Dallas, TX
+77002, Houston, TX
+60601, Chicago, IL
+46077, Indianapolis, IN
+30301, Atlanta, GA
+33602, Tampa, FL
+33125, Miami, FL
+33403, Palm Beach, FL
+20002, Washington, DC
+21206, Baltimore, MD
+19103, Philadelphia, PA
+18505, Scranton, PA
+10009, New York, NY
+02115, Boston, MA
+53558, Madison, WA
+32789, Orlando, FL
+28105, Charlotte, NC
+95605, Sacramento, CA

@@ -55,7 +55,7 @@ impl Config {
                 (@arg disable_station_cache: --disable_station_cache "Disable stations cache")
                 (@arg cache_timeout: --cache_timeout +takes_value "Cache timeout (default: 3600)")
                 (@arg days: -d --days +takes_value "Nr. of days to get EPG data for (default: 8)")
-                (@arg remap: -r --remap "Remap")
+                (@arg remap: -r --remap "Remap channels when multiplexed")
                 (@arg ssdp: -s --ssdp "Enable SSDP")
                 (@arg logfile: -l --logfile +takes_value "Log file location")
 
