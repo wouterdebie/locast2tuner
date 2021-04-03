@@ -1,6 +1,5 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::Tz;
-use futures::{Future, TryFutureExt};
 use regex::Regex;
 use reqwest::{
     blocking::Response,

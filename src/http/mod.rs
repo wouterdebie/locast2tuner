@@ -1,18 +1,22 @@
-mod streaming;
 mod xml_templates;
-use self::streaming::StreamBody;
+use crate::utils::base_url;
 use crate::{config::Config, service::stationprovider::StationProvider, utils::Or};
-use actix_web::middleware::Compat;
 use actix_web::middleware::Condition;
 use actix_web::middleware::Logger;
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use futures::future;
+use actix_web::{middleware::Compat, Error};
+use futures::{future, stream, Stream};
 use log::info;
 use prettytable::{cell, format, row, Table};
-use reqwest::header::LOCATION;
+use reqwest::{header::LOCATION, Url};
 use serde::Serialize;
-use std::sync::{Arc, Mutex};
+use std::convert::TryFrom;
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 use string_builder::Builder;
+use uuid::Uuid;
 
 const NETWORKS: [&'static str; 6] = ["ABC", "CBS", "NBC", "FOX", "CW", "PBS"];
 
@@ -55,16 +59,16 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
                     .wrap(Condition::new(verbose > 0, Compat::new(Logger::default())))
                     .app_data(app_state.clone())
                     .route("/", web::get().to(device_xml::<T>))
-                    .route("/device.xml", web::get().to(device_xml::<T>))
-                    .route("/lineup.xml", web::get().to(lineup_xml::<T>))
-                    .route("/discover.json", web::get().to(discover::<T>))
-                    .route("/lineup_status.json", web::get().to(lineup_status::<T>))
-                    .route("/tuner.m3u", web::get().to(tuner_m3u::<T>))
-                    .route("/lineup.json", web::get().to(lineup_json::<T>))
-                    .route("/epg", web::get().to(epg::<T>))
-                    .route("/epg.xml", web::get().to(epg_xml::<T>))
                     .route("/config", web::get().to(show_config::<T>))
+                    .route("/device.xml", web::get().to(device_xml::<T>))
+                    .route("/discover.json", web::get().to(discover::<T>))
+                    .route("/epg.xml", web::get().to(epg_xml::<T>))
+                    .route("/epg", web::get().to(epg::<T>))
+                    .route("/lineup_status.json", web::get().to(lineup_status::<T>))
+                    .route("/lineup.json", web::get().to(lineup_json::<T>))
                     .route("/lineup.post", web::post().to(lineup_post))
+                    .route("/lineup.xml", web::get().to(lineup_xml::<T>))
+                    .route("/tuner.m3u", web::get().to(tuner_m3u::<T>))
                     .service(web::resource("/watch/{id}.m3u").route(web::get().to(watch_m3u::<T>)))
                     .service(web::resource("/watch/{id}").route(web::get().to(watch::<T>)))
             })
@@ -206,7 +210,7 @@ async fn lineup_status<T: StationProvider>(data: web::Data<AppState<T>>) -> impl
         }
     } else {
         LineupStatus {
-            ScanInProgress: true,
+            ScanInProgress: false,
             Progress: 50,
             Found: 6,
             SourceList: Some(vec!["Antenna".to_string()]),
@@ -330,13 +334,83 @@ async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
     let url = service.station_stream_uri(id).await;
 
-    let stream = StreamBody::new(url);
+    let stream = get_stream(url);
 
     HttpResponse::Ok()
         .content_type("video/mpeg; codecs='avc1.4D401E'")
-        .streaming(stream)
+        .streaming(Box::pin(stream))
+}
+
+struct StreamState {
+    segments: VecDeque<Segment>,
+    url: String,
+    stream_id: String,
+}
+
+fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
+    // Build helper struct
+    let state = StreamState {
+        segments: VecDeque::new(),
+        url: url.to_owned(),
+        stream_id: Uuid::new_v4().to_string()[0..7].to_string(),
+    };
+
+    stream::unfold(state, |mut state| async move {
+        let m3u_data = crate::utils::get_async(&state.url, None)
+            .await
+            .text()
+            .await
+            .unwrap();
+        let media_playlist = hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()).unwrap();
+        let base_url = base_url(Url::parse(&state.url).unwrap());
+
+        for media_segment in media_playlist.segments {
+            let (_i, ms) = media_segment;
+            let absolute_uri = base_url.join(ms.uri()).unwrap();
+            let s = Segment {
+                url: absolute_uri.to_string(),
+                played: false,
+            };
+            if !state.segments.contains(&s) {
+                info!("Stream {} - added segment {:?}", state.stream_id, &s.url);
+                state.segments.push_back(s);
+            }
+        }
+
+        if state.segments.len() >= 30 {
+            info!("Stream {} - draining 10 segments", state.stream_id);
+            state.segments.drain(0..10);
+        }
+
+        // Find first unplayed segment
+        let first = state.segments.iter_mut().find(|s| !s.played).unwrap();
+
+        let chunk = crate::utils::get_async(&first.url, None)
+            .await
+            .bytes()
+            .await
+            .unwrap()
+            .to_vec();
+        first.played = true;
+        info!(
+            "Stream {} - playing: segment {:?}",
+            state.stream_id, first.url
+        );
+        Some((Ok(actix_web::web::Bytes::from(chunk)), state))
+    })
 }
 
 async fn lineup_post(_req: HttpRequest) -> impl Responder {
     HttpResponse::NoContent()
+}
+
+#[derive(Debug)]
+struct Segment {
+    url: String,
+    played: bool,
+}
+impl PartialEq for Segment {
+    fn eq(&self, other: &Self) -> bool {
+        self.url == other.url
+    }
 }

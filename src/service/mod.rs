@@ -6,12 +6,10 @@ use self::{
     stationprovider::StationProvider,
 };
 use crate::{
-    config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get,
-    utils::get_async,
+    config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get_async,
 };
-use actix_rt;
 use chrono::Utc;
-use futures::{executor, Future};
+use futures::Future;
 use log::info;
 use regex::Regex;
 use reqwest::Url;

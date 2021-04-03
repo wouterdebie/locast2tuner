@@ -1226,6 +1226,7 @@ dependencies = [
  "string-builder",
  "sys-info",
  "timer",
+ "tokio",
  "tz-search",
  "url",
  "uuid",
