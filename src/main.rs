@@ -17,14 +17,20 @@ use std::io::Write;
 use std::sync::Arc;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 fn main() -> Result<(), SimpleError> {
+    // Create a configuration struct that we'll pass along throughout the application
     let conf = Arc::new(config::Config::from_args_and_file()?);
 
+    // Log level 0 and 1 give info logging, but loglevel 1 adds HTTP logging.
+    // Level 2 is debug and anything else defaults to trace.
     let log_level = match conf.verbose {
         0 | 1 => LevelFilter::Info,
         2 => LevelFilter::Debug,
         _ => LevelFilter::Trace,
     };
 
+    // Create the proper log format, but only prefix the date and level if we
+    // have a tty, since we don't want to log date and level twice when using
+    // syslog or something.
     Builder::new()
         .format(|buf, record| {
             if atty::is(Stream::Stdout) {
@@ -79,6 +85,7 @@ fn main() -> Result<(), SimpleError> {
         )]
     };
 
+    // Create a multiplexer if necessary
     if conf.multiplex {
         if conf.remap {
             warn!("Channels will be remapped!")

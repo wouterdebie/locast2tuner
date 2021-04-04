@@ -20,6 +20,8 @@ use uuid::Uuid;
 
 const NETWORKS: [&'static str; 6] = ["ABC", "CBS", "NBC", "FOX", "CW", "PBS"];
 
+/// Struct that is passed to HTTP handlers that contains config, the service that can be used to
+/// lookup locast data, etc.
 struct AppState<T: StationProvider> {
     config: Arc<Config>,
     service: T,
@@ -28,15 +30,18 @@ struct AppState<T: StationProvider> {
 }
 
 #[actix_web::main]
+/// Start the HTTP server that will handle media server requests
 pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
     services: Vec<T>,
     config: Arc<Config>,
 ) -> std::io::Result<()> {
     let reporting_services = services.clone();
+    // Start a server for each service that is passed in
     let servers: Vec<Server> = services
         .into_iter()
         .enumerate()
         .map(|(i, service)| {
+            // Create port and address
             let port = config.port + i as u16;
             let bind_address = &config.bind_address;
             info!(
@@ -45,6 +50,8 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
                 bind_address,
                 port
             );
+
+            // Construct some app_state we can pass around
             let app_state = web::Data::new(AppState::<T> {
                 config: config.clone(),
                 service: service.clone(),
@@ -56,6 +63,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
 
             HttpServer::new(move || {
                 App::new()
+                    // Log HTTP requests if verbosity > 0
                     .wrap(Condition::new(verbose > 0, Compat::new(Logger::default())))
                     .app_data(app_state.clone())
                     .route("/", web::get().to(device_xml::<T>))
@@ -78,6 +86,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
         })
         .collect();
 
+    // Report on what has been started
     if config.multiplex {
         info!("Tuners:");
         let mut table = Table::new();

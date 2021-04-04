@@ -27,7 +27,10 @@ This project isn't complete yet. It works, but there are a few things I'd like t
 - Unit and integration tests.
 - Upgrade mechanism.
 - Since I'm pretty new to Rust, the code is probably not as idiomatic as it could be.
-
+- Get `--logfile working`.
+- Get `--override_location` working (maybe?)
+- Currently a sync and async HTTP client is used and I might want to consolidate this. We might want to get rid of reqwest, since actix-web comes with a http client.
+- Improve error handling
 ## Build prerequisites
 - Rust 1.50.0 (`brew install rust` on MacOS)
 - An active locast.org account with an active donation. Locast doesn't allow you to stream without a donation.
@@ -60,13 +63,12 @@ OPTIONS:
     -a, --bind <bind_address>                      Bind address (default: 127.0.0.1)
         --bytes_per_read <bytes_per_read>          Bytes per read(default: 1152000)
         --cache_timeout <cache_timeout>            Cache timeout (default: 3600)
-    -c, --config <config>                          Config File
+    -c, --config <config>                            Config File
     -d, --days <days>                              Nr. of days to get EPG data for (default: 8)
-        --device_firmware <device_firmware>        Device firmware (default: hdhomerun3_atsc)
+        --device_firmware <device_firmware>          Device firmware (default: hdhomerun3_atsc)
         --device_model <device_model>              Device model (default: HDHR3-US)
         --device_version <device_version>          Device version (default: 20170612)
-    -l, --logfile <logfile>                        Log file location
-    -o, --override_location <override_location>    Override location
+    -l, --logfile <logfile>                          Log file location
     -z, --override_zipcodes <override_zipcodes>    Override zipcodes
     -P, --password <password>                      Locast password
     -p, --port <port>                              Bind TCP port (default: 6077)
@@ -80,9 +82,8 @@ OPTIONS:
 
 ### Location overrides
 
-By default `locast2tuner` uses your IP address to determine your location, but it also allows you to override the locast.org location you're creating a Tuner for. There are 3 mutually exclusive options:
+By default `locast2tuner` uses your IP address to determine your location, but it also allows you to override the locast.org location you're creating a Tuner for:
 
-- `override_location`, which takes a `<latitude>,<longitude>` argument. E.g. `--override_location 40.7128,-74.0060` for New York.
 - `override_zipcodes`, which takes a comma separated list of zipcodes as an argument. E.g. `--override_zipcodes 90210,55111` for Los Angeles and Minneapolis.
 
 ### <a name="multi_region"></a>Multi regions

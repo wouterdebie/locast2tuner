@@ -15,7 +15,7 @@ pub struct Config {
     pub port: u16,
     pub verbose: u8,
     pub multiplex: bool,
-    pub override_location: Option<String>,
+    // pub override_location: Option<String>,
     pub override_zipcodes: Option<Vec<String>>,
     pub bytes_per_read: u32,
     pub tuner_count: u8,
@@ -27,7 +27,7 @@ pub struct Config {
     pub days: u8,
     pub remap: bool,
     pub ssdp: bool,
-    pub logfile: Option<String>,
+    // pub logfile: Option<String>,
     pub cache_directory: PathBuf,
     pub uuid: String,
 }
@@ -45,7 +45,7 @@ impl Config {
                 (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
                 (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0")
                 (@arg multiplex: -m --multiplex "Multiplex devices")
-                (@arg override_location: -o --override_location +takes_value "Override location")
+                // (@arg override_location: -o --override_location +takes_value "Override location")
                 (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override zipcodes")
                 (@arg bytes_per_read: --bytes_per_read +takes_value "Bytes per read(default: 1152000)")
                 (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 3)")
@@ -57,7 +57,7 @@ impl Config {
                 (@arg days: -d --days +takes_value "Nr. of days to get EPG data for (default: 8)")
                 (@arg remap: -r --remap "Remap channels when multiplexed")
                 (@arg ssdp: -s --ssdp "Enable SSDP")
-                (@arg logfile: -l --logfile +takes_value "Log file location")
+                // (@arg logfile: -l --logfile +takes_value "Log file location")
 
         )
         .get_matches();
@@ -87,11 +87,11 @@ impl Config {
         conf.verbose = cfg.grab().arg("verbose").conf("verbose").t_def::<u8>(0);
         conf.multiplex =
             cfg.bool_flag("multiplex", Filter::Arg) || cfg.bool_flag("multiplex", Filter::Conf);
-        conf.override_location = cfg
-            .grab()
-            .arg("override_location")
-            .conf("override_location")
-            .done();
+        // conf.override_location = cfg
+        //     .grab()
+        //     .arg("override_location")
+        //     .conf("override_location")
+        //     .done();
 
         let oz = cfg
             .grab()
@@ -146,7 +146,7 @@ impl Config {
         conf.days = cfg.grab().arg("days").conf("days").t_def::<u8>(8);
 
         conf.remap = cfg.bool_flag("remap", Filter::Arg) || cfg.bool_flag("remap", Filter::Conf);
-        conf.logfile = cfg.grab().arg("logfile").conf("logfile").done();
+        // conf.logfile = cfg.grab().arg("logfile").conf("logfile").done();
 
         let cache_directory = create_cache_directory();
 
@@ -156,6 +156,7 @@ impl Config {
     }
 }
 
+// Create the cache directory
 fn create_cache_directory() -> PathBuf {
     let cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
     if !cache_dir.exists() {
@@ -165,6 +166,7 @@ fn create_cache_directory() -> PathBuf {
     cache_dir
 }
 
+// Load the UUID from cache directory if exists
 fn load_uuid(cache_directory: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
     let uid_file = cache_directory.join(Path::new("uuid"));
     let uuid = match uid_file.exists() {
@@ -175,6 +177,7 @@ fn load_uuid(cache_directory: &PathBuf) -> Result<String, Box<dyn std::error::Er
     Ok(uuid)
 }
 
+// Generate UUID and store it in the supplied path
 fn generate_and_store_uid(path: PathBuf) -> String {
     let new_uuid = Uuid::new_v4().to_string();
 

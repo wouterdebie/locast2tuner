@@ -15,6 +15,7 @@ use std::{
 use std::{fs::File, io::prelude::*};
 use std::{io::BufReader, path::PathBuf};
 
+// Indexes of data that matters in FCC CSV file
 static LIC_EXPIRATION_DATE: usize = 15;
 static NIELSEN_DMA: usize = 27;
 static FAC_STATUS: usize = 16;
@@ -25,13 +26,15 @@ static TV_VIRTUAL_CHANNEL: usize = 28;
 
 static SERVICE_LIST: &'static [&str] = &["DT", "TX", "TV", "TB", "LD", "DC"];
 
-static MAX_FILE_AGE: u64 = 26 * 60 * 60;
-static CHECK_INTERVAL: u64 = 3600;
+static MAX_FILE_AGE: u64 = 24 * 60 * 60; // 24 hours
+static CHECK_INTERVAL: u64 = 3600; // 1 hour
 
 static FACILITIES_URL: &str =
     "https://transition.fcc.gov/ftp/Bureaus/MB/Databases/cdbs/facility.zip";
 static DMA_URL: &str = "http://api.locastnet.org/api/dma";
 
+// FCC Facilities are used to map locast stations with FCC channel numbers. After starting the facility,
+// the `FacilitiesMap` will contain a mapping from (locast_id, call_sign) to (fac_channel, tv_virtual_channel)
 #[derive(Debug)]
 pub struct FCCFacilities {
     config: Arc<Config>,
@@ -42,21 +45,22 @@ pub struct FCCFacilities {
 type FacilitiesMap = Arc<Mutex<HashMap<(i64, String), (String, String)>>>;
 
 impl FCCFacilities {
+    /// Create a new facilities. Normally this only has to be done once.
     pub fn new(config: Arc<Config>) -> FCCFacilities {
         // Make sure we have a complete facilities object before returning
         let facilities_map = Arc::new(Mutex::new(load(&config.cache_directory.join("facilities"))));
+
+        // Start a background thread that will update the facilities periodically
         start_updater_thread(&facilities_map, &config);
 
-        let facilities = FCCFacilities {
+        // Build and return
+        FCCFacilities {
             config,
             facilities_map,
-        };
-
-        // Start reload thread. This runs in the background forever.
-
-        facilities
+        }
     }
 
+    /// Look up facilities based on a locast_id (or locast dma), call_sign and potential sub_channel
     pub fn lookup(&self, locast_dma: i64, call_sign: &str, sub_channel: &str) -> String {
         let facilities_map = self.facilities_map.lock().unwrap();
         let (fac_channel, tv_virtual_channel) = facilities_map
@@ -66,15 +70,15 @@ impl FCCFacilities {
         if tv_virtual_channel.is_empty() {
             fac_channel.to_owned()
         } else if sub_channel.is_empty() {
-            let s = format!("{}.1", fac_channel.as_str());
-            s
+            format!("{}.1", fac_channel.as_str()) // default to x.1 if there is no sub_channel
         } else {
-            let s = format!("{}.{}", fac_channel.as_str(), sub_channel);
-            s
+            format!("{}.{}", fac_channel.as_str(), sub_channel)
         }
     }
 }
 
+/// Start an thread that will update the facilities map regularly and store them
+/// in the cache directory
 fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
     let facilities_map = facilities_map.clone();
     let config = config.clone();
@@ -89,6 +93,7 @@ fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
     });
 }
 
+/// Check if a path has expired, based on `MAX_FILE_AGE`
 fn path_expired(path: &PathBuf) -> bool {
     let modified = path.metadata().unwrap().modified().unwrap();
     SystemTime::now()
@@ -98,12 +103,15 @@ fn path_expired(path: &PathBuf) -> bool {
         > MAX_FILE_AGE
 }
 
+/// Load facilities from `cache_file`
 fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
     let mut zip: zip::ZipArchive<std::io::Cursor<Bytes>>;
     let reader: Box<dyn Read>;
 
+    // First get the locast_dmas from locast.org
     let locast_dmas: Vec<LocastDMA> = crate::utils::get(DMA_URL, None).json().unwrap();
 
+    // Using cached facilities if possible.
     let downloaded = if cache_file.exists() && !path_expired(&cache_file) {
         info!("Using cached FCC facilities at {}", cache_file.display());
         reader = Box::new(File::open(cache_file).unwrap());
@@ -141,6 +149,7 @@ fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
             if DateTime::parse_from_str(&s, "%m/%d/%Y %T %z").unwrap() >= Utc::now() {
                 let call_sign = fac_call_sign.split("-").collect::<Vec<&str>>()[0];
 
+                // Get the locast_id based on the Nielsen DMA
                 let locast_id = nielsen_dma_to_locast_id(nielsen_dma, &locast_dmas);
                 if locast_id.is_some() {
                     facilities_map.insert(
@@ -153,6 +162,7 @@ fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
         }
     }
 
+    // Only write lines that matter to the cache file.
     if downloaded {
         write_cache_file(cache_file, loaded_lines.join("\n").as_bytes());
     }
@@ -160,6 +170,7 @@ fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
     facilities_map
 }
 
+/// Try to find a locast_id by matching a Nielsen DMA with a Locast DMA name. This uses a fuzzy matcher.
 fn nielsen_dma_to_locast_id(nielsen_dma: &str, locast_dmas: &Vec<LocastDMA>) -> Option<i64> {
     let matcher = SkimMatcherV2::default();
     let mut matches: Vec<(i64, i64)> = locast_dmas
@@ -174,6 +185,7 @@ fn nielsen_dma_to_locast_id(nielsen_dma: &str, locast_dmas: &Vec<LocastDMA>) -> 
     Some(matches.first()?.0)
 }
 
+/// Write the cache file to `cache_path`
 fn write_cache_file(cache_file: &PathBuf, contents: &[u8]) {
     let display = cache_file.display();
     let mut file = match File::create(&cache_file) {
@@ -187,6 +199,7 @@ fn write_cache_file(cache_file: &PathBuf, contents: &[u8]) {
     }
 }
 
+/// Struct used to deserialize Locast DMA json
 #[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
 struct LocastDMA {

@@ -31,6 +31,7 @@ static IP_URL: &str = "https://api.locastnet.org/api/watch/dma/ip";
 static STATIONS_URL: &str = "https://api.locastnet.org/api/watch/epg";
 static WATCH_URL: &str = "https://api.locastnet.org/api/watch/station";
 
+/// Struct that interacts with locast. Note that valid credentials are required
 #[derive(Debug)]
 pub struct LocastService {
     config: Arc<Config>,
@@ -43,23 +44,27 @@ pub struct LocastService {
 }
 
 impl LocastService {
+    /// Construct a new LocastService for a specific DMA
     pub fn new(
         config: Arc<Config>,
         credentials: Arc<LocastCredentials>,
         fcc_facilities: Arc<FCCFacilities>,
         zipcode: Option<String>,
     ) -> LocastServiceArc {
+        // Figure out what location we are serving
         let geo = Arc::new(Geo::from(&zipcode));
         if !geo.active {
             panic!(format!("{} not active", geo.name))
         }
 
+        // Generate a UUID for this specific service
         let uuid = uuid::Uuid::new_v5(
             &uuid::Uuid::from_str(&config.uuid).unwrap(),
             geo.DMA.as_bytes(),
         )
         .to_string();
 
+        // Get a list of stations
         let stations = Arc::new(Mutex::new(build_stations(
             locast_stations(&geo.DMA, config.days, &credentials.token()),
             &geo,
@@ -67,9 +72,11 @@ impl LocastService {
             &fcc_facilities,
         )));
 
+        // Start an updater thread that will periodically update all station information
+        // including EPG data
         start_updater_thread(&config, &stations, &geo, &credentials, &fcc_facilities);
 
-        let service = Arc::new(LocastService {
+        Arc::new(LocastService {
             config,
             credentials,
             fcc_facilities,
@@ -77,12 +84,10 @@ impl LocastService {
             geo,
             uuid,
             stations,
-        });
-
-        service
+        })
     }
 
-    // Convenience method for building stations based on &self
+    /// Convenience method for building stations based on &self
     fn build_stations(&self) -> Vec<Station> {
         let locast_stations =
             locast_stations(&self.geo.DMA, self.config.days, &self.credentials.token());
@@ -98,6 +103,7 @@ impl LocastService {
 pub type LocastServiceArc = Arc<LocastService>;
 
 impl StationProvider for LocastServiceArc {
+    /// Get stations
     fn stations(&self) -> Stations {
         if self.config.disable_station_cache {
             Arc::new(Mutex::new(self.build_stations()))
@@ -106,33 +112,30 @@ impl StationProvider for LocastServiceArc {
         }
     }
 
+    /// Get the stream URI for a specified station id
     fn station_stream_uri(&self, id: String) -> Pin<Box<dyn Future<Output = String> + '_>> {
+
+        // Construct the URL for the station
         let url = format!(
             "{}/{}/{}/{}",
             WATCH_URL, id, self.geo.latitude, self.geo.longitude
         );
 
-        #[allow(non_snake_case)]
-        #[derive(Deserialize, Debug)]
-        struct WatchResponse {
-            streamUrl: String,
-        }
-
-        let token = self.credentials.token().to_owned();
-
         let s = async move {
             let response: HashMap<String, Value> =
-                get_async(&url, Some(&token)).await.json().await.unwrap();
+                get_async(&url, Some(&self.credentials.token().to_owned())).await.json().await.unwrap();
 
             let stream_url = response.get("streamUrl").unwrap().as_str().unwrap();
             let m3u_data = get_async(stream_url, None).await.text().await.unwrap();
             let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
 
-            // Make this nicer with a match
+            // TODO: Make this nicer with a match
             if master_playlist.is_err() {
                 stream_url.to_owned()
             } else {
                 let mut vs = master_playlist.unwrap().variant_streams;
+
+                // Sort the variant streams by bandwith (desc) and pick the top one
                 vs.sort_by(|a, b| {
                     let ea = match a {
                         hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
@@ -155,6 +158,7 @@ impl StationProvider for LocastServiceArc {
                     _ => Cow::Borrowed(""),
                 };
 
+                // since variant URLs are relative, construct a full url we can use
                 let full_url = Url::parse(&stream_url)
                     .unwrap()
                     .join(&variant_url.to_string())
@@ -167,14 +171,17 @@ impl StationProvider for LocastServiceArc {
         Box::pin(s)
     }
 
+    /// Returns the `Geo` that is associated with this service
     fn geo(&self) -> Arc<Geo> {
         self.geo.clone()
     }
 
+    /// Returns the UUID of this service
     fn uuid(&self) -> String {
         self.uuid.to_owned()
     }
 
+    /// Returns the zipcode (if set) of this service
     fn zipcode(&self) -> String {
         if let Some(z) = &self.zipcode {
             z.to_owned()
@@ -183,6 +190,8 @@ impl StationProvider for LocastServiceArc {
         }
     }
 
+    /// Returns the services associated to this service. In the case of locast service implementation,
+    /// this is an empty vector.
     fn services(&self) -> Vec<LocastServiceArc> {
         Vec::new()
     }
@@ -198,6 +207,7 @@ impl fmt::Display for LocastService {
     }
 }
 
+/// Start a `LocastService` updater thread
 fn start_updater_thread(
     config: &Arc<Config>,
     stations: &Stations,
@@ -205,7 +215,7 @@ fn start_updater_thread(
     credentials: &Arc<LocastCredentials>,
     fcc_facilities: &Arc<FCCFacilities>,
 ) {
-    // Can this be done nicer?
+    // TODO: Can this be done nicer?
     let thread_stations = stations.clone();
     let thread_config = config.clone();
     let thread_geo = geo.clone();
@@ -226,7 +236,7 @@ fn start_updater_thread(
     });
 }
 
-// Build stations
+/// Retrieve and enrich station data
 fn build_stations(
     locast_stations: Vec<Station>,
     geo: &Geo,
@@ -240,10 +250,14 @@ fn build_stations(
 
     let mut stations: Vec<Station> = Vec::new();
 
+    // Iterate over all locast stations for this service
     for mut station in locast_stations.into_iter() {
+
+        // Add some data we need for display
         station.timezone = geo.timezone.to_owned();
         station.city = Some(geo.name.to_owned());
 
+        // See if we can get the channel number from the call sign (i.e. X.Y NAME)
         let channel_from_call_sign = match Regex::new(r"(\d+\.\d+) .+")
             .unwrap()
             .captures(&station.callSign)
@@ -252,6 +266,9 @@ fn build_stations(
             None => None,
         };
 
+        // If the station's call sign is in the format "X.Y NAME", use X.Y as the channel number,
+        // otherwise, we'll have to lookup the channel number using the name or the call sign.
+        // And if we can't find the channel, we panic.
         let c = if let Some(channel) = channel_from_call_sign {
             Some(channel.to_string())
         } else if let Some((call_sign, sub_channel)) =
@@ -273,6 +290,8 @@ fn build_stations(
     stations
 }
 
+/// Get all stations from locast.org by specifying how many days in the future we would
+/// like station information.
 fn locast_stations(dma: &str, days: u8, token: &str) -> Vec<Station> {
     let start_time = Utc::now().format("%Y-%m-%dT00:00:00-00:00").to_string();
     let uri = format!(
@@ -287,6 +306,7 @@ fn locast_stations(dma: &str, days: u8, token: &str) -> Vec<Station> {
         .unwrap()
 }
 
+/// Detect a call sign from a string.
 fn detect_callsign(input: &str) -> Option<(&str, &str)> {
     let re = Regex::new(r"^([KW][A-Z]{2,3})[A-Z]{0,2}(\d{0,2})$").unwrap();
     let caps = re.captures(input)?;
@@ -306,6 +326,7 @@ pub struct Geo {
     pub timezone: Option<String>,
 }
 
+/// Create a Geo struct from a zip code
 impl From<&Option<String>> for Geo {
     fn from(zipcode: &Option<String>) -> Self {
         let uri = match zipcode {

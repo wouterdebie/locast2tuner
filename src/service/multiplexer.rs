@@ -1,16 +1,16 @@
+use crate::{
+    config::Config,
+    service::{Geo, LocastServiceArc, Station, StationProvider, Stations},
+};
+use futures::Future;
+use log::info;
 use std::{
     collections::HashMap,
     pin::Pin,
     sync::{Arc, Mutex},
 };
-
-use futures::Future;
-use log::info;
-
-use crate::{
-    config::Config,
-    service::{Geo, LocastServiceArc, Station, StationProvider, Stations},
-};
+/// Multiplex `LocastService` objects. `Multiplexer` implements the `StationProvider` trait
+/// and can act as a LocastService.
 pub struct Multiplexer {
     services: Vec<LocastServiceArc>,
     config: Arc<Config>,
@@ -18,6 +18,7 @@ pub struct Multiplexer {
 }
 
 impl Multiplexer {
+    /// Create a new `Multiplexer` with a vector of `LocastServiceArcs` and a `Config`
     pub fn new(services: Vec<LocastServiceArc>, config: Arc<Config>) -> MultiplexerArc {
         Arc::new(Multiplexer {
             services,
@@ -30,6 +31,7 @@ impl Multiplexer {
 type MultiplexerArc = Arc<Multiplexer>;
 
 impl StationProvider for Arc<Multiplexer> {
+    /// Get the stream URL for a locast station id.
     fn station_stream_uri(&self, id: String) -> Pin<Box<dyn Future<Output = String> + '_>> {
         // Make sure the station_id_service_map is loaded. Feels wrong to do it like this though.. Needs refactoring.
         self.stations();
@@ -42,11 +44,12 @@ impl StationProvider for Arc<Multiplexer> {
             .unwrap()
             .clone();
 
-        let res = async move {service.station_stream_uri(id).await };
+        let res = async move { service.station_stream_uri(id).await };
 
         Box::pin(res)
     }
 
+    /// Get all stations for all `LocastService`s.
     fn stations(&self) -> Stations {
         let mut all_stations: Vec<Station> = Vec::new();
         let services = self.services.clone();
