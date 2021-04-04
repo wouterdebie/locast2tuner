@@ -48,6 +48,7 @@ Since there are no packages available yet, you'll end up with a binary in `./tar
 
 
 ## Usage
+```
 USAGE:
     locast2tuner [FLAGS] [OPTIONS]
 
