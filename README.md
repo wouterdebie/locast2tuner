@@ -43,6 +43,26 @@ $ cargo build
 ```
 
 ## Install
+
+### Ubuntu/Debian
+```
+# Add the PPA key
+$ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
+$ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/my_ppa/sources.list"
+$ sudo apt update
+$ sudo apt install locast2tuner
+```
+
+Create a config file in `/etc/locast2tuner/config.ini` and enable and start the service:
+
+```
+$ sudo systemctl enable locast2tuner
+$ sudo systemctl start locast2tuner
+```
+
+
+### Other
+
 Since there are no packages available yet, you'll end up with a binary in `./target/debug/locast2tuner`. You can copy this to the directory of your choosing.
 
 
@@ -112,3 +132,5 @@ Note: PMS supports multiple devices, but does not support multiple Electronic Pr
 For example: if you use `--multiplex --override_zipcodes=90210,55111`, all channels from both zipcodes will be available, but multiplexed at `localhost:6077`.
 
 Note: This type of multiplexing makes sense in Emby, since you can add a single tuner at `http://PORT:IP` or `http://PORT:IP/lineup.m3u` and a single EPG at `http://PORT:IP/epg.xml`
+
+
