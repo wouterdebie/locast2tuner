@@ -20,29 +20,20 @@ Even though this project started as a locast to PMS interface, it's more focused
 - Provides locast EPG information as an XMLTV guide
 
 ## TODO
-This project isn't complete yet. It works, but there are a few things I'd like to get done:
-- Code and user documentation: there isn't much documentation in the code yet and there is no user documentation at all.
-- Packaging: I'd like to be able to supply binary packages for at least Ubuntu, MacOS, and Windows. And of course a Docker container.
-- Running locast2tuner as a daemon.
-- Unit and integration tests.
-- Upgrade mechanism.
-- Since I'm pretty new to Rust, the code is probably not as idiomatic as it could be.
-- Get `--logfile working`.
-- Get `--override_location` working (maybe?)
-- Currently a sync and async HTTP client is used and I might want to consolidate this. We might want to get rid of reqwest, since actix-web comes with a http client.
-- Improve error handling.
+This project isn't complete yet. It works, but there are a few things I'd like to get done. These can be found on the [Issues page](https://github.com/wouterdebie/locast2tuner/issues)
+
 ## Build prerequisites
 - [Rust](https://www.rust-lang.org/) 1.50.0+
-
+- An active locast.org account with an active donation. Locast doesn't allow you to stream without a donation.
 ##### MacOS
-`brew install rust`
+```
+brew install rust
+```
 
 ##### Linux
-
-`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-
-- An active locast.org account with an active donation. Locast doesn't allow you to stream without a donation.
-
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
 
 ## Build
 ```sh
