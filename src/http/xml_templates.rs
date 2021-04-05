@@ -11,12 +11,7 @@ use chrono_tz::Tz;
 use format_xml::xml;
 use htmlescape::encode_minimal;
 
-pub fn device_xml<T: StationProvider>(
-    config: &Config,
-    service: &T,
-    host: String,
-    port: String,
-) -> String {
+pub fn device_xml<T: StationProvider>(config: &Config, service: &T, host: String) -> String {
     let r = xml! {
         <root xmlns="urn:schemas-upnp-org:device-1-0">
         <specVersion>
@@ -32,21 +27,21 @@ pub fn device_xml<T: StationProvider>(
           <serialNumber/>
           <UDN>{"uuid:"}{service.uuid()}</UDN>
         </device>
-        <URLBase>{"http://"}{host}{":"}{port}</URLBase>
+        <URLBase>{"http://"}{host}</URLBase>
       </root>
     }
     .to_string();
     r
 }
 
-pub fn lineup_xml(stations: &Vec<Station>, host: String, port: String) -> String {
+pub fn lineup_xml(stations: &Vec<Station>, host: String) -> String {
     let r = xml! {
         <Lineup>
             for station in (stations) {
                 <Program>
                     <GuideNumber>{encode_minimal(&station.channel_remapped.as_ref().unwrap_or(&station.channel.as_ref().unwrap()))}</GuideNumber>
                     <GuideName>{encode_minimal(&station.name)}</GuideName>
-                    <URL>{"http://"}{host}{":"}{port}{"/watch/"}{station.id}</URL>
+                    <URL>{"http://"}{host}{"/watch/"}{station.id}</URL>
                 </Program>
             }
         </Lineup>

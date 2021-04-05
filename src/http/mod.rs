@@ -7,7 +7,6 @@ use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Re
 use actix_web::{middleware::Compat, Error};
 use chrono::{DateTime, Utc};
 use futures::{future, stream, Stream};
-use itertools::Itertools;
 use log::info;
 use prettytable::{cell, format, row, Table};
 use reqwest::{header::LOCATION, Url};
@@ -143,28 +142,19 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
     Ok(())
 }
 
-fn host_and_port(req: &HttpRequest) -> (String, String) {
-    req.connection_info()
-        .clone()
-        .host()
-        .split(":")
-        .map(|x| x.to_string())
-        .collect_tuple()
-        .unwrap()
-}
 async fn device_xml<T: 'static + StationProvider>(req: HttpRequest) -> HttpResponse {
     let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
-    let (host, port) = host_and_port(&req);
-    let result = xml_templates::device_xml::<T>(&data.config, &data.service, host, port);
+    let host = req.connection_info().host().to_string();
+    let result = xml_templates::device_xml::<T>(&data.config, &data.service, host);
     HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
 async fn lineup_xml<T: 'static + StationProvider>(req: HttpRequest) -> HttpResponse {
     let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
-    let (host, port) = host_and_port(&req);
+    let host = req.connection_info().host().to_string();
     let stations_mutex = data.service.stations();
     let stations = &stations_mutex.lock().unwrap();
-    let result = xml_templates::lineup_xml(stations, host, port);
+    let result = xml_templates::lineup_xml(stations, host);
     HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
@@ -192,7 +182,7 @@ struct DiscoverData {
 
 async fn discover<T: 'static + StationProvider>(req: HttpRequest) -> HttpResponse {
     let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
-    let (host, port) = host_and_port(&req);
+    let host = req.connection_info().host().to_string();
     let uuid = &data.config.uuid;
     let device_id = usize::from_str_radix(&uuid[..8], 16).unwrap();
     let checksum = crate::utils::hdhr_checksum(device_id); // TODO: FIX!
@@ -206,8 +196,8 @@ async fn discover<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespons
         FirmwareVersion: data.config.device_version.clone(),
         DeviceID: valid_id,
         DeviceAuth: "locast2dvr".to_string(),
-        BaseURL: format!("http://{}:{}", host, port),
-        LineupURL: format!("http://{}:{}/lineup.json", host, port),
+        BaseURL: format!("http://{}", host),
+        LineupURL: format!("http://{}/lineup.json", host),
     };
 
     HttpResponse::Ok().json(&response)
@@ -252,7 +242,7 @@ impl Or for String {
 }
 async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpResponse {
     let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
-    let (host, port) = host_and_port(&req);
+    let host = req.connection_info().host().to_string();
     let mut builder = Builder::default();
     builder.append("#EXTM3U\n");
     let stations_mutex = data.service.stations();
@@ -293,7 +283,7 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
             &station.id, &call_sign, &logo, &channel, &groups, &tvg_name
         ));
 
-        let url = format!("http://{}:{}/watch/{}.m3u", &host, &port, &station.id);
+        let url = format!("http://{}/watch/{}.m3u", &host, &station.id);
         builder.append(format!("\n{}\n\n", url));
     }
 
@@ -310,14 +300,14 @@ struct LineupJson {
 
 async fn lineup_json<T: 'static + StationProvider>(req: HttpRequest) -> HttpResponse {
     let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
-    let (host, port) = host_and_port(&req);
+    let host = req.connection_info().host().to_string();
     let stations_mutex = data.service.stations();
     let stations = stations_mutex.lock().unwrap();
 
     let lineup: Vec<LineupJson> = stations
         .iter()
         .map(|station| {
-            let url = format!("http://{}:{}/watch/{}", &host, &port, &station.id);
+            let url = format!("http://{}/watch/{}", &host, &station.id);
             LineupJson {
                 GuideNumber: station
                     .channel_remapped
