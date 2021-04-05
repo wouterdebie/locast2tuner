@@ -22,7 +22,7 @@ Even though this project started as a locast to PMS interface, it's more focused
 ## TODO
 This project isn't complete yet. It works, but there are a few things I'd like to get done:
 - Code and user documentation: there isn't much documentation in the code yet and there is no user documentation at all.
-- Packaging: I'd like to be able to supply binary packages for at least Ubuntu, MacOS and Windows. And of course a Docker container.
+- Packaging: I'd like to be able to supply binary packages for at least Ubuntu, MacOS, and Windows. And of course a Docker container.
 - Running locast2tuner as a daemon.
 - Unit and integration tests.
 - Upgrade mechanism.
@@ -30,9 +30,17 @@ This project isn't complete yet. It works, but there are a few things I'd like t
 - Get `--logfile working`.
 - Get `--override_location` working (maybe?)
 - Currently a sync and async HTTP client is used and I might want to consolidate this. We might want to get rid of reqwest, since actix-web comes with a http client.
-- Improve error handling
+- Improve error handling.
 ## Build prerequisites
-- Rust 1.50.0 (`brew install rust` on MacOS)
+- [Rust](https://www.rust-lang.org/) 1.50.0+
+
+##### MacOS
+`brew install rust`
+
+##### Linux
+
+`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
 - An active locast.org account with an active donation. Locast doesn't allow you to stream without a donation.
 
 
@@ -44,7 +52,7 @@ $ cargo build
 ```
 
 ## Install
-Since there are no packages available yet, you'll end up with a binary in `./target/debug/locast2tuner`. You can copy this around.
+Since there are no packages available yet, you'll end up with a binary in `./target/debug/locast2tuner`. You can copy this to the directory of your choosing.
 
 
 ## Usage
@@ -64,12 +72,12 @@ OPTIONS:
     -a, --bind <bind_address>                      Bind address (default: 127.0.0.1)
         --bytes_per_read <bytes_per_read>          Bytes per read(default: 1152000)
         --cache_timeout <cache_timeout>            Cache timeout (default: 3600)
-    -c, --config <config>                            Config File
+    -c, --config <config>                          Config File
     -d, --days <days>                              Nr. of days to get EPG data for (default: 8)
-        --device_firmware <device_firmware>          Device firmware (default: hdhomerun3_atsc)
+        --device_firmware <device_firmware>        Device firmware (default: hdhomerun3_atsc)
         --device_model <device_model>              Device model (default: HDHR3-US)
         --device_version <device_version>          Device version (default: 20170612)
-    -l, --logfile <logfile>                          Log file location
+    -l, --logfile <logfile>                        Log file location
     -z, --override_zipcodes <override_zipcodes>    Override zipcodes
     -P, --password <password>                      Locast password
     -p, --port <port>                              Bind TCP port (default: 6077)
