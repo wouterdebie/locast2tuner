@@ -76,12 +76,12 @@ pub fn epg_xml(stations: &Vec<Station>) -> String {
                         <credits>
                             if let Some(directors) = (&program.directors) {
                                 for director in (split(directors, ", ")){
-                                    <director>{director}</director>
+                                    <director>{encode_minimal(&director)}</director>
                                 }
                             }
                             if let Some(actors) = (&program.topCast) {
                                 for actor in (split(actors, ", ")){
-                                    <actor>{actor}</actor>
+                                    <actor>{encode_minimal(&actor)}</actor>
                                 }
                             }
                         </credits>
