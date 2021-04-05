@@ -54,7 +54,7 @@ impl LocastService {
         // Figure out what location we are serving
         let geo = Arc::new(Geo::from(&zipcode));
         if !geo.active {
-            panic!(format!("{} not active", geo.name))
+            panic!("{} not active", geo.name)
         }
 
         // Generate a UUID for this specific service
@@ -114,7 +114,6 @@ impl StationProvider for LocastServiceArc {
 
     /// Get the stream URI for a specified station id
     fn station_stream_uri(&self, id: String) -> Pin<Box<dyn Future<Output = String> + '_>> {
-
         // Construct the URL for the station
         let url = format!(
             "{}/{}/{}/{}",
@@ -123,7 +122,11 @@ impl StationProvider for LocastServiceArc {
 
         let s = async move {
             let response: HashMap<String, Value> =
-                get_async(&url, Some(&self.credentials.token().to_owned())).await.json().await.unwrap();
+                get_async(&url, Some(&self.credentials.token().to_owned()))
+                    .await
+                    .json()
+                    .await
+                    .unwrap();
 
             let stream_url = response.get("streamUrl").unwrap().as_str().unwrap();
             let m3u_data = get_async(stream_url, None).await.text().await.unwrap();
@@ -252,7 +255,6 @@ fn build_stations(
 
     // Iterate over all locast stations for this service
     for mut station in locast_stations.into_iter() {
-
         // Add some data we need for display
         station.timezone = geo.timezone.to_owned();
         station.city = Some(geo.name.to_owned());
@@ -279,10 +281,10 @@ fn build_stations(
 
             Some(channel)
         } else {
-            panic!(format!(
+            panic!(
                 "Channel {}, call sign: {} not found!",
                 &station.name, &station.callSign
-            ));
+            );
         };
         station.channel = c;
         stations.push(station);

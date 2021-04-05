@@ -11,8 +11,8 @@ pub struct Station {
     pub dma: i64,
     pub id: i64,
     pub listings: Vec<Listing>,
-    pub logo226Url: String,
-    pub logoUrl: String,
+    pub logo226Url: Option<String>,
+    pub logoUrl: Option<String>,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sequence: Option<i64>,

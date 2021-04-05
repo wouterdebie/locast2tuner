@@ -25,7 +25,7 @@ pub fn get(uri: &str, token: Option<&str>) -> Response {
 
     let resp = client.send().unwrap();
     if !resp.status().is_success() {
-        panic!(format!("Fetching {} failed: {:?}", uri, resp))
+        panic!("Fetching {} failed: {:?}", uri, resp)
     }
 
     resp
@@ -41,7 +41,7 @@ pub async fn get_async(uri: &str, token: Option<&str>) -> reqwest::Response {
 
     let resp = client.send().await.unwrap();
     if !resp.status().is_success() {
-        panic!(format!("Fetching {} failed: {:?}", uri, resp))
+        panic!("Fetching {} failed: {:?}", uri, resp)
     }
 
     resp

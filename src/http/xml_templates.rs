@@ -61,7 +61,7 @@ pub fn epg_xml(stations: &Vec<Station>) -> String {
                 <display-name lang="en">{encode_minimal(&station.name)}</display-name>
                 <display-name lang="en">{encode_minimal(&station.channel_remapped.as_ref().unwrap_or(&station.channel.as_ref().unwrap()))}</display-name>
                 <display-name lang="en">{station.id}</display-name>
-                <icon src={encode_minimal(&station.logoUrl)} />
+                <icon src={encode_minimal(&station.logoUrl.as_ref().unwrap())} />
             </channel>
         }
         for station in (stations){

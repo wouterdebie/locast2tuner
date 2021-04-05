@@ -5,6 +5,7 @@ use actix_web::middleware::Condition;
 use actix_web::middleware::Logger;
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::{middleware::Compat, Error};
+use chrono::{DateTime, Utc};
 use futures::{future, stream, Stream};
 use log::info;
 use prettytable::{cell, format, row, Table};
@@ -252,7 +253,11 @@ async fn tuner_m3u<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Res
                 .unwrap_or(call_sign_or_name),
         );
         let city = station.city.as_ref().unwrap();
-        let logo = station.logoUrl.or(&station.logo226Url);
+        let logo = &station
+            .logoUrl
+            .as_ref()
+            .or(station.logo226Url.as_ref())
+            .unwrap();
         let channel = &station
             .channel_remapped
             .as_ref()
@@ -354,6 +359,8 @@ struct StreamState {
     segments: VecDeque<Segment>,
     url: String,
     stream_id: String,
+    start_time: DateTime<Utc>,
+    seconds_served: f32,
 }
 
 fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
@@ -362,6 +369,8 @@ fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
         segments: VecDeque::new(),
         url: url.to_owned(),
         stream_id: Uuid::new_v4().to_string()[0..7].to_string(),
+        start_time: Utc::now(),
+        seconds_served: 0.0,
     };
 
     stream::unfold(state, |mut state| async move {
@@ -379,6 +388,7 @@ fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
             let s = Segment {
                 url: absolute_uri.to_string(),
                 played: false,
+                duration: ms.duration.duration(),
             };
             if !state.segments.contains(&s) {
                 info!("Stream {} - added segment {:?}", state.stream_id, &s.url);
@@ -394,6 +404,26 @@ fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
         // Find first unplayed segment
         let first = state.segments.iter_mut().find(|s| !s.played).unwrap();
 
+        let runtime = Utc::now() - state.start_time;
+        let target_diff = 0.5 * first.duration.as_secs_f32();
+
+        let wait = if state.seconds_served > 0.0 {
+            state.seconds_served - target_diff - (runtime.num_milliseconds() as f32 / 1000.0)
+        } else {
+            0.0
+        };
+
+        info!(
+            "Serving {} ({} s) in {}s",
+            &first.url,
+            first.duration.as_secs_f32(),
+            wait
+        );
+
+        if wait > 0.0 {
+            tokio::time::sleep(tokio::time::Duration::from_secs_f32(wait)).await;
+        }
+
         let chunk = crate::utils::get_async(&first.url, None)
             .await
             .bytes()
@@ -405,6 +435,8 @@ fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
             "Stream {} - playing: segment {:?}",
             state.stream_id, first.url
         );
+
+        state.seconds_served += first.duration.as_secs_f32();
         Some((Ok(actix_web::web::Bytes::from(chunk)), state))
     })
 }
@@ -417,6 +449,7 @@ async fn lineup_post(_req: HttpRequest) -> impl Responder {
 struct Segment {
     url: String,
     played: bool,
+    duration: std::time::Duration,
 }
 impl PartialEq for Segment {
     fn eq(&self, other: &Self) -> bool {

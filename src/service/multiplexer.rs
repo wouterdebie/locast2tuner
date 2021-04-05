@@ -65,7 +65,7 @@ impl StationProvider for Arc<Multiplexer> {
                     } else if let Ok(c) = channel.parse::<f32>() {
                         station.channel_remapped = Some((c + 100.0 * i as f32).to_string());
                     } else {
-                        panic!(format!("Could not remap {}", channel));
+                        panic!("Could not remap {}", channel);
                     };
 
                     // Convoluted.. let's fix this sometime..
