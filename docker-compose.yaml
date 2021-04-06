@@ -1,0 +1,10 @@
+version: '3'
+services:
+  locast2tuner:
+    image: locast2tuner
+    container_name: locast2tuner
+    volumes:
+      - ~/docker/config:/app/config
+    ports:
+      - 6077:6077
+    restart: unless-stopped
