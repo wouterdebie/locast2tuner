@@ -1,5 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
+use futures::lock::Mutex;
 use serde::{Deserialize, Serialize};
 #[allow(non_snake_case)]
 #[derive(Deserialize, Serialize, Debug, Clone)]

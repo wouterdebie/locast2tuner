@@ -2,13 +2,10 @@ use crate::{
     config::Config,
     service::{Geo, LocastServiceArc, Station, StationProvider, Stations},
 };
-use futures::Future;
+use async_trait::async_trait;
+use futures::{lock::Mutex};
 use log::info;
-use std::{
-    collections::HashMap,
-    pin::Pin,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, sync::Arc};
 /// Multiplex `LocastService` objects. `Multiplexer` implements the `StationProvider` trait
 /// and can act as a LocastService.
 pub struct Multiplexer {
@@ -29,34 +26,33 @@ impl Multiplexer {
 }
 
 type MultiplexerArc = Arc<Multiplexer>;
-
+#[async_trait]
 impl StationProvider for Arc<Multiplexer> {
     /// Get the stream URL for a locast station id.
-    fn station_stream_uri(&self, id: String) -> Pin<Box<dyn Future<Output = String> + '_>> {
+    async fn station_stream_uri(&self, id: String) -> Mutex<String> {
         // Make sure the station_id_service_map is loaded. Feels wrong to do it like this though.. Needs refactoring.
-        self.stations();
+        self.stations().await;
 
         let service = self
             .station_id_service_map
             .lock()
-            .unwrap()
+            .await
             .get(&id.to_string())
             .unwrap()
             .clone();
 
-        let res = async move { service.station_stream_uri(id).await };
-
-        Box::pin(res)
+        service.station_stream_uri(id).await
     }
 
     /// Get all stations for all `LocastService`s.
-    fn stations(&self) -> Stations {
+    async fn stations(&self) -> Stations {
         let mut all_stations: Vec<Station> = Vec::new();
         let services = self.services.clone();
         let services_len = services.len();
         for (i, service) in services.into_iter().enumerate() {
-            let stations_mutex = service.stations();
-            let stations = stations_mutex.lock().unwrap();
+            let stations_mutex = service.stations().await;
+
+            let stations = stations_mutex.lock().await;
             for mut station in stations.iter().map(|s| s.clone()) {
                 if self.config.remap {
                     let channel = station.channel.as_ref().unwrap();
@@ -76,7 +72,7 @@ impl StationProvider for Arc<Multiplexer> {
                 }
                 self.station_id_service_map
                     .lock()
-                    .unwrap()
+                    .await
                     .insert(station.id.to_string(), service.clone());
                 all_stations.push(station);
             }

@@ -6,16 +6,13 @@ use actix_web::middleware::Logger;
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::{middleware::Compat, Error};
 use chrono::{DateTime, Utc};
-use futures::{future, stream, Stream};
+use futures::{future, lock::Mutex, stream, Stream};
 use log::info;
 use prettytable::{cell, format, row, Table};
 use reqwest::{header::LOCATION, Url};
 use serde::Serialize;
 use std::convert::TryFrom;
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-};
+use std::{collections::VecDeque, sync::Arc};
 use string_builder::Builder;
 use uuid::Uuid;
 
@@ -29,7 +26,6 @@ struct AppState<T: StationProvider> {
     station_scan: Mutex<bool>,
 }
 
-#[actix_web::main]
 /// Start the HTTP server that will handle media server requests
 pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
     services: Vec<T>,
@@ -153,15 +149,15 @@ async fn lineup_xml<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespo
     let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
     let host = req.connection_info().host().to_string();
     let stations_mutex = data.service.stations();
-    let stations = &stations_mutex.lock().unwrap();
-    let result = xml_templates::lineup_xml(stations, host);
+    let stations = stations_mutex.await;
+    let result = xml_templates::lineup_xml(&*stations.lock().await, host);
     HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
 async fn epg_xml<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let stations_mutex = data.service.stations();
-    let stations = &stations_mutex.lock().unwrap();
-    let result = xml_templates::epg_xml(stations);
+    let stations = stations_mutex.await;
+    let result = xml_templates::epg_xml(&*stations.lock().await);
     HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
@@ -212,7 +208,7 @@ struct LineupStatus {
     SourceList: Option<Vec<String>>,
 }
 async fn lineup_status<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
-    let station_scan = data.station_scan.lock().unwrap();
+    let station_scan = data.station_scan.lock().await;
     let response = if *station_scan {
         LineupStatus {
             ScanInProgress: true,
@@ -246,9 +242,9 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
     let mut builder = Builder::default();
     builder.append("#EXTM3U\n");
     let stations_mutex = data.service.stations();
-    let stations = stations_mutex.lock().unwrap();
+    let stations = stations_mutex.await;
 
-    for station in stations.iter() {
+    for station in stations.lock().await.iter() {
         let call_sign_or_name = &station.callSign.or(&station.name).to_string();
         let call_sign = crate::utils::name_only(
             &station
@@ -302,9 +298,11 @@ async fn lineup_json<T: 'static + StationProvider>(req: HttpRequest) -> HttpResp
     let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
     let host = req.connection_info().host().to_string();
     let stations_mutex = data.service.stations();
-    let stations = stations_mutex.lock().unwrap();
+    let stations = stations_mutex.await;
 
     let lineup: Vec<LineupJson> = stations
+        .lock()
+        .await
         .iter()
         .map(|station| {
             let url = format!("http://{}/watch/{}", &host, &station.id);
@@ -330,25 +328,27 @@ async fn show_config<T: StationProvider>(data: web::Data<AppState<T>>) -> impl R
 
 async fn epg<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let stations_mutex = data.service.stations();
-    let stations = &*stations_mutex.lock().unwrap();
-    HttpResponse::Ok().json(stations)
+    let stations = &*stations_mutex.await;
+    HttpResponse::Ok().json(stations.lock().await)
 }
 
 async fn watch_m3u<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
     let id = req.match_info().get("id").unwrap().to_string();
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
-    let url = service.station_stream_uri(id).await;
+    let url_mutex = service.station_stream_uri(id).await;
+    let url = url_mutex.lock().await;
+
     HttpResponse::TemporaryRedirect()
-        .append_header((LOCATION, url))
+        .append_header((LOCATION, &*url.as_str()))
         .finish()
 }
 
 async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
     let id = req.match_info().get("id").unwrap().to_string();
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
-    let url = service.station_stream_uri(id).await;
-
-    let stream = get_stream(url);
+    let url_mutex = service.station_stream_uri(id).await;
+    let url = url_mutex.lock().await;
+    let stream = get_stream(&*url);
 
     HttpResponse::Ok()
         .content_type("video/mpeg; codecs='avc1.4D401E'")
@@ -363,7 +363,7 @@ struct StreamState {
     seconds_served: f32,
 }
 
-fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
+fn get_stream(url: &str) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
     // Build helper struct
     let state = StreamState {
         segments: VecDeque::new(),
@@ -374,7 +374,7 @@ fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
     };
 
     stream::unfold(state, |mut state| async move {
-        let m3u_data = crate::utils::get_async(&state.url, None)
+        let m3u_data = crate::utils::get(&state.url, None)
             .await
             .text()
             .await
@@ -424,7 +424,7 @@ fn get_stream(url: String) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
             tokio::time::sleep(tokio::time::Duration::from_secs_f32(wait)).await;
         }
 
-        let chunk = crate::utils::get_async(&first.url, None)
+        let chunk = crate::utils::get(&first.url, None)
             .await
             .bytes()
             .await
