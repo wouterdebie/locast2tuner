@@ -48,7 +48,7 @@ $ cargo build
 ```
 # Add the PPA key
 $ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
-$ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/my_ppa/sources.list"
+$ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
 $ sudo apt update
 $ sudo apt install locast2tuner
 ```
