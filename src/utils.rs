@@ -2,7 +2,6 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::Tz;
 use regex::Regex;
 use reqwest::{
-    blocking::Response,
     header::{HeaderMap, HeaderValue},
     Url,
 };
@@ -12,27 +11,8 @@ pub trait Or {
     fn or<'a>(&'a self, other: &'a str) -> &str;
 }
 
-/// HTTP Get (blocking). A token is optional, but should be used for authenticated requests
-pub fn get(uri: &str, token: Option<&str>) -> Response {
-    let mut client = reqwest::blocking::Client::new()
-        .get(uri)
-        .headers(construct_headers());
-
-    client = match token {
-        Some(t) => client.header("authorization", format!("Bearer {}", t)),
-        None => client,
-    };
-
-    let resp = client.send().unwrap();
-    if !resp.status().is_success() {
-        panic!("Fetching {} failed: {:?}", uri, resp)
-    }
-
-    resp
-}
-
 /// HTTP Get (async). A token is optional, but should be used for authenticated requests
-pub async fn get_async(uri: &str, token: Option<&str>) -> reqwest::Response {
+pub async fn get(uri: &str, token: Option<&str>) -> reqwest::Response {
     let mut client = reqwest::Client::new().get(uri).headers(construct_headers());
     client = match token {
         Some(t) => client.header("authorization", format!("Bearer {}", t)),

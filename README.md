@@ -43,6 +43,26 @@ $ cargo build
 ```
 
 ## Install
+
+### Ubuntu/Debian
+```
+# Add the PPA key
+$ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
+$ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
+$ sudo apt update
+$ sudo apt install locast2tuner
+```
+
+Create a config file in `/etc/locast2tuner/config.ini` and enable and start the service:
+
+```
+$ sudo systemctl enable locast2tuner
+$ sudo systemctl start locast2tuner
+```
+
+
+### Other
+
 Since there are no packages available yet, you'll end up with a binary in `./target/debug/locast2tuner`. You can copy this to the directory of your choosing.
 
 
@@ -113,8 +133,8 @@ For example: if you use `--multiplex --override_zipcodes=90210,55111`, all chann
 
 Note: This type of multiplexing makes sense in Emby, since you can add a single tuner at `http://PORT:IP` or `http://PORT:IP/lineup.m3u` and a single EPG at `http://PORT:IP/epg.xml`
 
----
 
+---
 ## Running in Docker
 
 We are working on an official Docker image for this project that will use a package or precompiled binary of locast2tuner for efficiency.  In the meantime, we have included a `Dockerfile` to use if you would like to run locast2tuner in a Docker container. 
@@ -132,3 +152,5 @@ You can build your own container image using the instructions below -  Some fami
 3) Run your container using either docker-compose (working `docker-compose.yaml` included) or with `docker run -p 6077:6077 -v ./config/:/app/config -d locast2tuner`
 
 > If you placed `config.ini` in a custom directory in Step #2, then you will have to adjust the Docker volume mapping on the CLI or in `docker-compose.yaml`.
+
+

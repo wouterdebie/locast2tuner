@@ -10,15 +10,20 @@ mod utils;
 use atty::Stream;
 use chrono::Local;
 use env_logger::Builder;
+use itertools::Itertools;
 use log::{info, warn, LevelFilter};
 use service::multiplexer::Multiplexer;
 use simple_error::SimpleError;
 use std::io::Write;
 use std::sync::Arc;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-fn main() -> Result<(), SimpleError> {
+#[actix_web::main]
+async fn main() -> Result<(), SimpleError> {
     // Create a configuration struct that we'll pass along throughout the application
-    let conf = Arc::new(config::Config::from_args_and_file()?);
+    let conf = match config::Config::from_args_and_file() {
+        Ok(c) => Arc::new(c),
+        Err(e) => panic!("{}", e),
+    };
 
     // Log level 0 and 1 give info logging, but loglevel 1 adds HTTP logging.
     // Level 2 is debug and anything else defaults to trace.
@@ -58,14 +63,14 @@ fn main() -> Result<(), SimpleError> {
     info!("UUID: {}", conf.uuid);
 
     // Login to locast and get credentials we pass around
-    let credentials = Arc::new(credentials::LocastCredentials::new(conf.clone()));
+    let credentials = Arc::new(credentials::LocastCredentials::new(conf.clone()).await);
 
     // Load FCC facilities
-    let fcc_facilities = Arc::new(fcc_facilities::FCCFacilities::new(conf.clone()));
+    let fcc_facilities = Arc::new(fcc_facilities::FCCFacilities::new(conf.clone()).await);
 
     // Create Locast Services
     let services = if let Some(zipcodes) = &conf.override_zipcodes {
-        zipcodes
+        let services = zipcodes
             .into_iter()
             .map(|x| {
                 service::LocastService::new(
@@ -75,14 +80,10 @@ fn main() -> Result<(), SimpleError> {
                     Some(x.to_string()),
                 )
             })
-            .collect()
+            .collect_vec();
+        futures::future::join_all(services).await
     } else {
-        vec![service::LocastService::new(
-            conf.clone(),
-            credentials,
-            fcc_facilities,
-            None,
-        )]
+        vec![service::LocastService::new(conf.clone(), credentials, fcc_facilities, None).await]
     };
 
     // Create a multiplexer if necessary
@@ -90,13 +91,13 @@ fn main() -> Result<(), SimpleError> {
         if conf.remap {
             warn!("Channels will be remapped!")
         }
-        let mp = vec![Multiplexer::new(services.clone(), conf.clone())];
-        match http::start(mp, conf.clone()) {
+        let mp = vec![Multiplexer::new(services, conf.clone())];
+        match http::start(mp, conf.clone()).await {
             Ok(()) => Ok(()),
             Err(_) => return Err(SimpleError::new("Failed to start servers")),
         }
     } else {
-        match http::start(services, conf.clone()) {
+        match http::start(services, conf.clone()).await {
             Ok(()) => Ok(()),
             Err(_) => return Err(SimpleError::new("Failed to start servers")),
         }

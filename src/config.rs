@@ -54,6 +54,7 @@ impl Config {
                 (@arg device_version: --device_version +takes_value "Device version (default: 20170612)")
                 (@arg disable_station_cache: --disable_station_cache "Disable stations cache")
                 (@arg cache_timeout: --cache_timeout +takes_value "Cache timeout (default: 3600)")
+                (@arg cache_dir: --cache_dir +takes_value "Cache directory (default: $HOME/.locast2tuner)")
                 (@arg days: -d --days +takes_value "Nr. of days to get EPG data for (default: 8)")
                 (@arg remap: -r --remap "Remap channels when multiplexed")
                 (@arg ssdp: -s --ssdp "Enable SSDP")
@@ -148,17 +149,26 @@ impl Config {
         conf.remap = cfg.bool_flag("remap", Filter::Arg) || cfg.bool_flag("remap", Filter::Conf);
         // conf.logfile = cfg.grab().arg("logfile").conf("logfile").done();
 
-        let cache_directory = create_cache_directory();
+        let default_cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
+
+        let cache_directory_name = cfg
+            .grab()
+            .arg("cache_dir")
+            .conf("cache_dir")
+            .def(default_cache_dir.to_str().unwrap());
+
+        let cache_directory = create_cache_directory(cache_directory_name);
 
         conf.uuid = load_uuid(&cache_directory).unwrap();
+
         conf.cache_directory = cache_directory;
         Ok(conf)
     }
 }
 
 // Create the cache directory
-fn create_cache_directory() -> PathBuf {
-    let cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
+fn create_cache_directory(name: String) -> PathBuf {
+    let cache_dir = Path::new(&name).to_path_buf();
     if !cache_dir.exists() {
         fs::create_dir(cache_dir.as_path())
             .expect(&format!("Unable to create directory {:?}", cache_dir)[..]);

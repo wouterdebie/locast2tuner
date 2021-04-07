@@ -1,0 +1,28 @@
+#!/bin/sh
+
+L2T_HOME_DIR="/var/lib/locast2tuner"
+L2T_USER="locast2tuner"
+L2T_GROUP="$L2T_USER"
+L2T_SHELL="/bin/false"
+
+set -e
+case "$1" in
+    configure)
+        . /usr/share/debconf/confmodule
+        db_version 2.0
+        adduser --quiet --system --group --home "$L2T_HOME_DIR" \
+                --disabled-password --disabled-login \
+                --shell "$L2T_SHELL" "$L2T_USER"
+    ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0
