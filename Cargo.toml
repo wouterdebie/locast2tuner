@@ -1,6 +1,6 @@
 [package]
 name = "locast2tuner"
-version = "0.1.3"
+version = "0.1.4"
 description = "Locast.org to Plex Media Server/Emby integration server"
 authors = ["Wouter de Bie <wouter@evenflow.nl>"]
 repository = "https://github.com/wouterdebie/locast2tuner"
@@ -29,6 +29,7 @@ systemd-units = { enable = false }
 [dependencies]
 actix-web = "4.0.0-beta.3"
 actix-rt = "2.2.0"
+async-trait = "0.1.48"
 atty = "0.2"
 bytes = "1.0.1"
 chrono = "0.4.19"

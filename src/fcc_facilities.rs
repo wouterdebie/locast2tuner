@@ -1,17 +1,12 @@
 use crate::config::Config;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
+use futures::lock::Mutex;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use log::info;
 use serde::Deserialize;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-    thread,
-    time::{self, SystemTime},
-    usize,
-};
+use std::{collections::HashMap, sync::Arc, time::SystemTime, usize};
 use std::{fs::File, io::prelude::*};
 use std::{io::BufReader, path::PathBuf};
 
@@ -27,7 +22,7 @@ static TV_VIRTUAL_CHANNEL: usize = 28;
 static SERVICE_LIST: &'static [&str] = &["DT", "TX", "TV", "TB", "LD", "DC"];
 
 static MAX_FILE_AGE: u64 = 24 * 60 * 60; // 24 hours
-static CHECK_INTERVAL: u64 = 3600; // 1 hour
+                                         // static CHECK_INTERVAL: u64 = 3600; // 1 hour
 
 static FACILITIES_URL: &str =
     "https://transition.fcc.gov/ftp/Bureaus/MB/Databases/cdbs/facility.zip";
@@ -46,12 +41,14 @@ type FacilitiesMap = Arc<Mutex<HashMap<(i64, String), (String, String)>>>;
 
 impl FCCFacilities {
     /// Create a new facilities. Normally this only has to be done once.
-    pub fn new(config: Arc<Config>) -> FCCFacilities {
+    pub async fn new(config: Arc<Config>) -> FCCFacilities {
         // Make sure we have a complete facilities object before returning
-        let facilities_map = Arc::new(Mutex::new(load(&config.cache_directory.join("facilities"))));
+        let facilities_map = Arc::new(Mutex::new(
+            load(&config.cache_directory.join("facilities")).await,
+        ));
 
         // Start a background thread that will update the facilities periodically
-        start_updater_thread(&facilities_map, &config);
+        // start_updater_thread(&facilities_map, &config);
 
         // Build and return
         FCCFacilities {
@@ -61,8 +58,8 @@ impl FCCFacilities {
     }
 
     /// Look up facilities based on a locast_id (or locast dma), call_sign and potential sub_channel
-    pub fn lookup(&self, locast_dma: i64, call_sign: &str, sub_channel: &str) -> String {
-        let facilities_map = self.facilities_map.lock().unwrap();
+    pub async fn lookup(&self, locast_dma: i64, call_sign: &str, sub_channel: &str) -> String {
+        let facilities_map = self.facilities_map.lock().await;
         let (fac_channel, tv_virtual_channel) = facilities_map
             .get(&(locast_dma, call_sign.to_string()))
             .unwrap(); // This should exist
@@ -77,21 +74,25 @@ impl FCCFacilities {
     }
 }
 
+// TODO: get the updater thread working again..
 /// Start an thread that will update the facilities map regularly and store them
-/// in the cache directory
-fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
-    let facilities_map = facilities_map.clone();
-    let config = config.clone();
+// // /// in the cache directory
+// fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
+//     let facilities_map = facilities_map.clone();
+//     let config = config.clone();
 
-    thread::spawn(move || loop {
-        thread::sleep(time::Duration::from_secs(CHECK_INTERVAL));
-        info!("Reloading FCC facilities..");
-        let cache_file = config.cache_directory.join("facilities");
-        let new_facilties = load(&cache_file);
-        let mut facilities = facilities_map.lock().unwrap();
-        *facilities = new_facilties;
-    });
-}
+//     task::spawn(async move {
+//         loop {
+//             sleep(Duration::from_secs(CHECK_INTERVAL)).await;
+
+//             info!("Reloading FCC facilities..");
+//             let cache_file = config.cache_directory.join("facilities");
+//             let new_facilties = load(&cache_file).await;
+//             let mut facilities = facilities_map.lock().await;
+//             *facilities = new_facilties;
+//         }
+//     });
+// }
 
 /// Check if a path has expired, based on `MAX_FILE_AGE`
 fn path_expired(path: &PathBuf) -> bool {
@@ -104,12 +105,16 @@ fn path_expired(path: &PathBuf) -> bool {
 }
 
 /// Load facilities from `cache_file`
-fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
+async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
     let mut zip: zip::ZipArchive<std::io::Cursor<Bytes>>;
     let reader: Box<dyn Read>;
 
     // First get the locast_dmas from locast.org
-    let locast_dmas: Vec<LocastDMA> = crate::utils::get(DMA_URL, None).json().unwrap();
+    let locast_dmas: Vec<LocastDMA> = crate::utils::get(DMA_URL, None)
+        .await
+        .json()
+        .await
+        .unwrap();
 
     // Using cached facilities if possible.
     let downloaded = if cache_file.exists() && !path_expired(&cache_file) {
@@ -118,7 +123,11 @@ fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
         false
     } else {
         info!("Downloading FCC facilities");
-        let zipfile = crate::utils::get(FACILITIES_URL, None).bytes().unwrap();
+        let zipfile = crate::utils::get(FACILITIES_URL, None)
+            .await
+            .bytes()
+            .await
+            .unwrap();
         zip = zip::ZipArchive::new(std::io::Cursor::new(zipfile)).unwrap();
         reader = Box::new(zip.by_name("facility.dat").unwrap());
         true

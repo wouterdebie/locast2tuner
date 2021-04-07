@@ -6,10 +6,11 @@ use self::{
     stationprovider::StationProvider,
 };
 use crate::{
-    config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get_async,
+    config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get,
 };
+use async_trait::async_trait;
 use chrono::Utc;
-use futures::Future;
+use futures::lock::Mutex;
 use log::info;
 use regex::Regex;
 use reqwest::Url;
@@ -20,11 +21,11 @@ use std::{
     collections::HashMap,
     convert::{From, TryFrom},
     fmt,
-    pin::Pin,
     str::FromStr,
-    sync::{Arc, Mutex},
-    thread, time,
+    sync::Arc,
 };
+use tokio::task;
+use tokio::time::{sleep, Duration};
 
 static DMA_URL: &str = "https://api.locastnet.org/api/watch/dma";
 static IP_URL: &str = "https://api.locastnet.org/api/watch/dma/ip";
@@ -45,14 +46,14 @@ pub struct LocastService {
 
 impl LocastService {
     /// Construct a new LocastService for a specific DMA
-    pub fn new(
+    pub async fn new(
         config: Arc<Config>,
         credentials: Arc<LocastCredentials>,
         fcc_facilities: Arc<FCCFacilities>,
         zipcode: Option<String>,
     ) -> LocastServiceArc {
         // Figure out what location we are serving
-        let geo = Arc::new(Geo::from(&zipcode));
+        let geo = Arc::new(geo_from(&zipcode).await);
         if !geo.active {
             panic!("{} not active", geo.name)
         }
@@ -65,12 +66,15 @@ impl LocastService {
         .to_string();
 
         // Get a list of stations
-        let stations = Arc::new(Mutex::new(build_stations(
-            locast_stations(&geo.DMA, config.days, &credentials.token()),
-            &geo,
-            &config,
-            &fcc_facilities,
-        )));
+        let stations = Arc::new(Mutex::new(
+            build_stations(
+                locast_stations(&geo.DMA, config.days, &credentials.token().await).await,
+                &geo,
+                &config,
+                &fcc_facilities,
+            )
+            .await,
+        ));
 
         // Start an updater thread that will periodically update all station information
         // including EPG data
@@ -88,90 +92,93 @@ impl LocastService {
     }
 
     /// Convenience method for building stations based on &self
-    fn build_stations(&self) -> Vec<Station> {
-        let locast_stations =
-            locast_stations(&self.geo.DMA, self.config.days, &self.credentials.token());
+    async fn build_stations(&self) -> Vec<Station> {
+        let locast_stations = locast_stations(
+            &self.geo.DMA,
+            self.config.days,
+            &self.credentials.token().await,
+        )
+        .await;
         build_stations(
             locast_stations,
             &self.geo,
             &self.config,
             &self.fcc_facilities,
         )
+        .await
     }
 }
 
 pub type LocastServiceArc = Arc<LocastService>;
 
+#[async_trait]
 impl StationProvider for LocastServiceArc {
     /// Get stations
-    fn stations(&self) -> Stations {
+    async fn stations(&self) -> Stations {
         if self.config.disable_station_cache {
-            Arc::new(Mutex::new(self.build_stations()))
+            Arc::new(Mutex::new(self.build_stations().await))
         } else {
             self.stations.clone()
         }
     }
 
     /// Get the stream URI for a specified station id
-    fn station_stream_uri(&self, id: String) -> Pin<Box<dyn Future<Output = String> + '_>> {
+    async fn station_stream_uri(&self, id: String) -> Mutex<String> {
         // Construct the URL for the station
         let url = format!(
             "{}/{}/{}/{}",
             WATCH_URL, id, self.geo.latitude, self.geo.longitude
         );
 
-        let s = async move {
-            let response: HashMap<String, Value> =
-                get_async(&url, Some(&self.credentials.token().to_owned()))
-                    .await
-                    .json()
-                    .await
-                    .unwrap();
+        let response: HashMap<String, Value> =
+            get(&url, Some(&self.credentials.token().await.to_owned()))
+                .await
+                .json()
+                .await
+                .unwrap();
 
-            let stream_url = response.get("streamUrl").unwrap().as_str().unwrap();
-            let m3u_data = get_async(stream_url, None).await.text().await.unwrap();
-            let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
+        let stream_url = response.get("streamUrl").unwrap().as_str().unwrap();
+        let m3u_data = get(stream_url, None).await.text().await.unwrap();
+        let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
 
-            // TODO: Make this nicer with a match
-            if master_playlist.is_err() {
-                stream_url.to_owned()
-            } else {
-                let mut vs = master_playlist.unwrap().variant_streams;
+        // TODO: Make this nicer with a match
+        if master_playlist.is_err() {
+            Mutex::new(stream_url.to_owned())
+        } else {
+            let mut vs = master_playlist.unwrap().variant_streams;
 
-                // Sort the variant streams by bandwith (desc) and pick the top one
-                vs.sort_by(|a, b| {
-                    let ea = match a {
-                        hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
-                            stream_data.bandwidth()
-                        }
-                        _ => 0,
-                    };
-                    let eb = match b {
-                        hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
-                            stream_data.bandwidth()
-                        }
-                        _ => 0,
-                    };
-                    ea.cmp(&eb)
-                });
-                let variant = vs.pop().unwrap();
-
-                let variant_url = match variant {
-                    hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
-                    _ => Cow::Borrowed(""),
+            // Sort the variant streams by bandwith (desc) and pick the top one
+            vs.sort_by(|a, b| {
+                let ea = match a {
+                    hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
+                        stream_data.bandwidth()
+                    }
+                    _ => 0,
                 };
+                let eb = match b {
+                    hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
+                        stream_data.bandwidth()
+                    }
+                    _ => 0,
+                };
+                ea.cmp(&eb)
+            });
+            let variant = vs.pop().unwrap();
 
-                // since variant URLs are relative, construct a full url we can use
-                let full_url = Url::parse(&stream_url)
-                    .unwrap()
-                    .join(&variant_url.to_string())
-                    .unwrap()
-                    .to_string();
+            let variant_url = match variant {
+                hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
+                _ => Cow::Borrowed(""),
+            };
 
-                full_url.to_string()
-            }
-        };
-        Box::pin(s)
+            // since variant URLs are relative, construct a full url we can use
+            let full_url = Url::parse(&stream_url)
+                .unwrap()
+                .join(&variant_url.to_string())
+                .unwrap()
+                .to_string();
+
+            Mutex::new(full_url.to_string())
+        }
     }
 
     /// Returns the `Geo` that is associated with this service
@@ -226,21 +233,25 @@ fn start_updater_thread(
     let thread_facilities = fcc_facilities.clone();
     let thread_timeout = config.cache_timeout.clone();
 
-    thread::spawn(move || loop {
-        thread::sleep(time::Duration::from_secs(thread_timeout));
-        let ls = locast_stations(
-            &thread_geo.DMA,
-            thread_config.days,
-            &thread_credentials.token(),
-        );
-        let new_stations = build_stations(ls, &thread_geo, &thread_config, &thread_facilities);
-        let mut stations = thread_stations.lock().unwrap();
-        *stations = new_stations;
+    task::spawn(async move {
+        loop {
+            sleep(Duration::from_secs(thread_timeout)).await;
+            let ls = locast_stations(
+                &thread_geo.DMA,
+                thread_config.days,
+                &thread_credentials.token().await,
+            )
+            .await;
+            let new_stations =
+                build_stations(ls, &thread_geo, &thread_config, &thread_facilities).await;
+            let mut stations = thread_stations.lock().await;
+            *stations = new_stations;
+        }
     });
 }
 
 /// Retrieve and enrich station data
-fn build_stations(
+async fn build_stations(
     locast_stations: Vec<Station>,
     geo: &Geo,
     config: &Arc<Config>,
@@ -277,7 +288,7 @@ fn build_stations(
             detect_callsign(&station.name).or(detect_callsign(&station.callSign))
         {
             let dma = geo.DMA.parse::<i64>().unwrap();
-            let channel = fcc_facilities.lookup(dma, call_sign, sub_channel);
+            let channel = fcc_facilities.lookup(dma, call_sign, sub_channel).await;
 
             Some(channel)
         } else {
@@ -294,7 +305,7 @@ fn build_stations(
 
 /// Get all stations from locast.org by specifying how many days in the future we would
 /// like station information.
-fn locast_stations(dma: &str, days: u8, token: &str) -> Vec<Station> {
+async fn locast_stations(dma: &str, days: u8, token: &str) -> Vec<Station> {
     let start_time = Utc::now().format("%Y-%m-%dT00:00:00-00:00").to_string();
     let uri = format!(
         "{}/{}?startTime={}&hours={}",
@@ -304,7 +315,9 @@ fn locast_stations(dma: &str, days: u8, token: &str) -> Vec<Station> {
         days * 24
     );
     crate::utils::get(&uri, Some(token))
+        .await
         .json::<Vec<Station>>()
+        .await
         .unwrap()
 }
 
@@ -327,17 +340,17 @@ pub struct Geo {
     pub active: bool,
     pub timezone: Option<String>,
 }
+async fn geo_from(zipcode: &Option<String>) -> Geo {
+    let uri = match zipcode {
+        Some(z) => format!("{}/zip/{}", DMA_URL, z),
+        None => String::from(IP_URL),
+    };
 
-/// Create a Geo struct from a zip code
-impl From<&Option<String>> for Geo {
-    fn from(zipcode: &Option<String>) -> Self {
-        let uri = match zipcode {
-            Some(z) => format!("{}/zip/{}", DMA_URL, z),
-            None => String::from(IP_URL),
-        };
-
-        let mut geo = crate::utils::get(&uri, None).json::<Geo>().unwrap();
-        geo.timezone = Some(tz_search::lookup(geo.latitude, geo.longitude).unwrap());
-        geo
-    }
+    let mut geo = crate::utils::get(&uri, None)
+        .await
+        .json::<Geo>()
+        .await
+        .unwrap();
+    geo.timezone = Some(tz_search::lookup(geo.latitude, geo.longitude).unwrap());
+    geo
 }

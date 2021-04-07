@@ -1,12 +1,12 @@
-use std::{pin::Pin, sync::Arc};
-
-use futures::Future;
-
 use super::{station::Stations, Geo, LocastServiceArc};
+use async_trait::async_trait;
+use futures::lock::Mutex;
+use std::sync::Arc;
 
+#[async_trait]
 pub trait StationProvider {
-    fn station_stream_uri(&self, id: String) -> Pin<Box<dyn Future<Output = String> + '_>>;
-    fn stations(&self) -> Stations;
+    async fn station_stream_uri(&self, id: String) -> Mutex<String>;
+    async fn stations(&self) -> Stations;
     fn geo(&self) -> Arc<Geo>;
     fn uuid(&self) -> String;
     fn zipcode(&self) -> String;
