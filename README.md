@@ -13,7 +13,7 @@ Apart from the fact that everything is Rust now, the big difference between `loc
 Even though this project started as a locast to PMS interface, it's more focused on integrating locast with Emby, since Emby provides a bit more functionality when it comes to Live TV and Tuner (like m3u tuners, XMLTV, etc).
 
 ## Features
-- Override your location using zipcode or GPS coordinates
+- Override your location using ZIP code or GPS coordinates
 - Multiple digital tuners in a single server, either as separate servers or as one (multiplexing)
 - Acts like either an HDHomerun Tuner or m3u tuner
 - Provides locast EPG information as an XMLTV guide
@@ -94,7 +94,7 @@ OPTIONS:
         --device_firmware <device_firmware>        Device firmware (default: hdhomerun3_atsc)
         --device_model <device_model>              Device model (default: HDHR3-US)
         --device_version <device_version>          Device version (default: 20170612)
-    -z, --override_zipcodes <override_zipcodes>    Override zipcodes
+    -z, --override_zipcodes <override_zipcodes>    Override ZIP codes
     -P, --password <password>                      Locast password
     -p, --port <port>                              Bind TCP port (default: 6077)
         --tuner_count <tuner_count>                Tuner count (default: 3)
@@ -123,7 +123,7 @@ See [assets/config.ini.example](https://github.com/wouterdebie/locast2tuner/blob
 
 By default `locast2tuner` uses your IP address to determine your location, but it also allows you to override the locast.org location you're creating a Tuner for:
 
-- `override_zipcodes`, which takes a comma separated list of zipcodes as an argument. E.g. `--override_zipcodes 90210,55111` for Los Angeles and Minneapolis.
+- `override_zipcodes`, which takes a comma separated list of ZIP codes as an argument. E.g. `--override_zipcodes 90210,55111` for Los Angeles and Minneapolis.
 
 ### <a name="multi_region"></a>Multi regions
 
@@ -142,13 +142,13 @@ Note: PMS supports multiple devices, but does not support multiple Electronic Pr
 - For use as an m3u tuner, use `http://IP:PORT/tuner.m3u` (defaults to `http://127.0.0.1:6077/tuner.m3u`) as the URL to connect.
 
 #### EPG
-`locast2tuner` also provides Electronic Programming Guide (EPG) information from locast. This is served in [XMLTV](http://wiki.xmltv.org/) format. Emby has support for XMLTV and can be used by adding `http://IP:PORT/epg.xml`  (defaults to `http://127.0.0.1:6077/epg.xml`) as an XMLTV TV Guide Data Provider.
+`locast2tuner` also provides Electronic Programming Guide (EPG) information from locast. This is served in [XMLTV](http://wiki.xmltv.org/) format. Emby and PMS both have support for XMLTV which can be used by adding `http://IP:PORT/epg.xml`  (defaults to `http://127.0.0.1:6077/epg.xml`) as an XMLTV TV Guide Data Provider.
 
 ### Multiplexing
 
 `locast2tuner` normally starts an HTTP instance for each Tuner, starting at `port` (default `6077`). But with the option `--multiplex`, it will start a single HTTP interface multiplexing all Tuners through one interface for both streaming and EPG. Any channels that have the same call sign (like 4.1 ABC) will be deduped.
 
-For example: if you use `--multiplex --override_zipcodes=90210,55111`, all channels from both zipcodes will be available, but multiplexed at `localhost:6077`.
+For example: if you use `--multiplex --override_zipcodes=90210,55111`, all channels from both ZIP codes will be available, but multiplexed at `localhost:6077`.
 
 Note: This type of multiplexing makes sense in Emby, since you can add a single tuner at `http://PORT:IP` or `http://PORT:IP/lineup.m3u` and a single EPG at `http://PORT:IP/epg.xml`
 
@@ -158,7 +158,7 @@ Note: This type of multiplexing makes sense in Emby, since you can add a single 
 When you encounter a bug, please use [Github Issues](https://github.com/wouterdebie/locast2tuner/issues):
 - Add a detailed description of the issue you're experiencing.
 - Explain what steps can be taken to reproduce the issue.
-- If possible, add an excerpt of the logfile that shows the error.
+- If possible, add an excerpt of the log file that shows the error.
 - Add a copy of your config. You can get a copy of your running config by opening `/config` in a browser (e.g [http://localhost:6077/config](http://localhost:6077/config)). This will not expose your locast password. If you can't access `/config`, please add your `config.ini` *without* your password.
 - Before submitting, mark the issue as a "Bug".
 
