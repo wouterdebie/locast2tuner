@@ -2,6 +2,8 @@ on:
   push:
     branches:
       - main
+      - cicd
+      - "cicd/**"
 
 name: Continuous Integration
 
@@ -141,34 +143,6 @@ jobs:
           github_token: ${{ secrets.API_KEY }}
           directory: wouterdebie.github.io
           repository: wouterdebie/wouterdebie.github.io
-  # fedorarpmbuild:
-  #   needs: [build]
-  #   runs-on: ubuntu-latest
-  #   name: FedoraRpm
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: BuildRpm
-  #     id: buildrpm
-  #     uses: ebbflow-io/cargo-rpm-amd64-fedora@1.1
-  #   - name: Upload RPM Artifact
-  #     uses: actions/upload-artifact@v2
-  #     with:
-  #       name: fedorarpm
-  #       path: ./target/x86_64-unknown-linux-musl/release/rpmbuild/RPMS/x86_64/*
-  # opensuseleaprpmbuild:
-  #   needs: [build]
-  #   runs-on: ubuntu-latest
-  #   name: OpensuseLeapRpm
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: BuildRpm
-  #     id: buildrpm
-  #     uses: ebbflow-io/cargo-rpm-amd64-opensuseleap@1.0
-  #   - name: Upload RPM Artifact
-  #     uses: actions/upload-artifact@v2
-  #     with:
-  #       name: opensuserpm
-  #       path: ./target/x86_64-unknown-linux-musl/release/rpmbuild/RPMS/x86_64/*
   # raspbianbuild:
   #   needs: [build]
   #   runs-on: ubuntu-latest
@@ -256,22 +230,6 @@ jobs:
   #     with:
   #       name: armv7binaries
   #       path: armv7binaries.zip
-  # linuxamd64dockerbuild:
-  #   needs: [amd64binaries]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/download-artifact@v2
-  #     - run: cp ./amd64binaries/ebbflow ./docker/
-  #     - run: chmod +x ./docker/ebbflow
-  #     - name: Build and push Docker images
-  #       uses: docker/build-push-action@v1
-  #       with:
-  #         username: ${{ secrets.DOCKER_USERNAME }}
-  #         password: ${{ secrets.DOCKER_PASSWORD }}
-  #         repository: ebbflow/ebbflow-client-linux-amd64
-  #         tags: latest
-  #         path: ./docker/
   # update_release_draft:
   #   needs: [quickcheck, arm7binaries, linuxamd64dockerbuild, amd64binaries, macosbuild, windowsbuild, raspbianbuild, debbuild, opensuseleaprpmbuild, fedorarpmbuild]
   #   runs-on: ubuntu-latest
