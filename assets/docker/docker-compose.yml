@@ -4,7 +4,7 @@ services:
     image: ghcr.io/wouterdebie/locast2tuner
     container_name: locast2tuner
     volumes:
-      - ./config:/app/config
+      - ./.locast2tuner:/app/config
     ports:
       - 6077:6077
     restart: unless-stopped
