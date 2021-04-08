@@ -75,20 +75,19 @@ FLAGS:
         --disable_station_cache    Disable stations cache
     -h, --help                     Prints help information
     -m, --multiplex                Multiplex devices
-    -r, --remap                    Remap
+    -r, --remap                    Remap channels when multiplexed
     -s, --ssdp                     Enable SSDP
     -V, --version                  Prints version information
 
 OPTIONS:
-    -a, --bind <bind_address>                      Bind address (default: 127.0.0.1)
-        --bytes_per_read <bytes_per_read>          Bytes per read(default: 1152000)
+    -b, --bind_address <bind_address>              Bind address (default: 127.0.0.1)
+        --cache_dir <cache_dir>                    Cache directory (default: $HOME/.locast2tuner)
         --cache_timeout <cache_timeout>            Cache timeout (default: 3600)
     -c, --config <config>                          Config File
     -d, --days <days>                              Nr. of days to get EPG data for (default: 8)
         --device_firmware <device_firmware>        Device firmware (default: hdhomerun3_atsc)
         --device_model <device_model>              Device model (default: HDHR3-US)
         --device_version <device_version>          Device version (default: 20170612)
-    -l, --logfile <logfile>                        Log file location
     -z, --override_zipcodes <override_zipcodes>    Override zipcodes
     -P, --password <password>                      Locast password
     -p, --port <port>                              Bind TCP port (default: 6077)

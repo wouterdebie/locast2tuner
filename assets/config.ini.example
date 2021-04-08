@@ -1,7 +1,20 @@
+# Mandatory configuration
 username="my_locast@username"
 password="very_secret_password"
-# bind_address = "0.0.0.0"
+
+# Optional configuration
+# bind_address = "127.0.0.1"
 # override_zipcodes="98101,94102,90210,85006,80123,57701,57103,51054,55111,75001,77002,60601,46077,30301,33602,33125,33403,20002,21206,19103,18505,10009,02115"
-# multiplex = false
 # days = 8
 # verbose = 1
+# port = 6077
+# tuner_count = 3
+# disable_station_cache = false
+# multiplex = false
+# remap = false
+# ssdp = false
+# cache_dir = "/var/lib/locast2tuner" # default: $HOME/.locast2tuner
+# cache_timeout = 3600
+# device_firmware = "homerun3_atsc"
+# device_model = "HDHR3-US"
+# device_version = "20170612"

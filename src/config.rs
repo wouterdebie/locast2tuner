@@ -17,7 +17,6 @@ pub struct Config {
     pub multiplex: bool,
     // pub override_location: Option<String>,
     pub override_zipcodes: Option<Vec<String>>,
-    pub bytes_per_read: u32,
     pub tuner_count: u8,
     pub device_model: String,
     pub device_firmware: String,
@@ -43,11 +42,9 @@ impl Config {
                 (@arg password: -P --password +takes_value "Locast password")
                 (@arg bind_address: -b --bind_address +takes_value "Bind address (default: 127.0.0.1)")
                 (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
-                (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0")
+                (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0)")
                 (@arg multiplex: -m --multiplex "Multiplex devices")
-                // (@arg override_location: -o --override_location +takes_value "Override location")
                 (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override zipcodes")
-                (@arg bytes_per_read: --bytes_per_read +takes_value "Bytes per read(default: 1152000)")
                 (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 3)")
                 (@arg device_model: --device_model +takes_value "Device model (default: HDHR3-US)")
                 (@arg device_firmware: --device_firmware +takes_value "Device firmware (default: hdhomerun3_atsc)")
@@ -88,11 +85,6 @@ impl Config {
         conf.verbose = cfg.grab().arg("verbose").conf("verbose").t_def::<u8>(0);
         conf.multiplex =
             cfg.bool_flag("multiplex", Filter::Arg) || cfg.bool_flag("multiplex", Filter::Conf);
-        // conf.override_location = cfg
-        //     .grab()
-        //     .arg("override_location")
-        //     .conf("override_location")
-        //     .done();
 
         let oz = cfg
             .grab()
@@ -104,12 +96,6 @@ impl Config {
             Some(o) => Some(o.split(',').map(|x| x.to_string()).collect()),
             None => None,
         };
-
-        conf.bytes_per_read = cfg
-            .grab()
-            .arg("bytes_per_read")
-            .conf("bytes_per_read")
-            .t_def::<u32>(115200);
 
         conf.tuner_count = cfg
             .grab()
