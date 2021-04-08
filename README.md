@@ -22,7 +22,27 @@ Even though this project started as a locast to PMS interface, it's more focused
 ## TODO
 This project isn't complete yet. It works, but there are a few things I'd like to get done. These can be found on the [Issues page](https://github.com/wouterdebie/locast2tuner/issues)
 
-## Build prerequisites
+## Getting started 
+#####(see below for Docker instructions)
+
+### Ubuntu/Debian
+```
+# Add the PPA key
+$ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
+$ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
+$ sudo apt update
+$ sudo apt install locast2tuner
+```
+
+Create a config file in `/etc/locast2tuner/config.ini` and enable and start the service:
+
+```
+$ sudo systemctl enable locast2tuner
+$ sudo systemctl start locast2tuner
+```
+
+### Others
+### Build prerequisites
 - [Rust](https://www.rust-lang.org/) 1.50.0+
 - An active locast.org account with an active donation. Locast doesn't allow you to stream without a donation.
 ##### MacOS
@@ -44,27 +64,7 @@ $ cargo build
 
 ## Install
 
-### Ubuntu/Debian
-```
-# Add the PPA key
-$ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
-$ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
-$ sudo apt update
-$ sudo apt install locast2tuner
-```
-
-Create a config file in `/etc/locast2tuner/config.ini` and enable and start the service:
-
-```
-$ sudo systemctl enable locast2tuner
-$ sudo systemctl start locast2tuner
-```
-
-
-### Other
-
-Since there are no packages available yet, you'll end up with a binary in `./target/debug/locast2tuner`. You can copy this to the directory of your choosing.
-
+You'll end up with a binary in `./target/debug/locast2tuner`. You can copy this to the directory of your choosing.
 
 ## Usage
 ```
@@ -100,6 +100,18 @@ OPTIONS:
 ## Configuration
 `locast2tuner` parameters can be specified as either command line arguments or in a configuration file that can be specified using that `--config` argument.
 
+The configuration file format is:
+
+```sh
+option1="<value1>"
+option2="<value2>"
+```
+
+Example:
+```sh
+username="<Locast username>"
+password="<Locast password>"
+```
 ### Location overrides
 
 By default `locast2tuner` uses your IP address to determine your location, but it also allows you to override the locast.org location you're creating a Tuner for:
@@ -137,20 +149,20 @@ Note: This type of multiplexing makes sense in Emby, since you can add a single 
 ---
 ## Running in Docker
 
-We are working on an official Docker image for this project that will use a package or precompiled binary of locast2tuner for efficiency.  In the meantime, we have included a `Dockerfile` to use if you would like to run locast2tuner in a Docker container. 
+We are working on an official Docker image for this project that will use precompiled binary of `locast2tuner` for efficiency.  We have included a `Dockerfile` to use if you would like to run `locast2tuner` in a Docker container in the meantime. 
 
 You can build your own container image using the instructions below -  Some familiarity with Docker is required for these steps.
 
-1) From the project directory, build the container image with: `docker build -t locast2tuner .` 
+1) In the directory where `Dockerfile` is located, run: `docker build -t locast2tuner .` 
 
-> Note: Depending on your system resources, this may take 15 to 20 minutes to complete.
+> This will download the base Ubuntu Docker image and install the locast2tuner package inside of it.
 
-2) Copy the included `config/config.ini.sample` file to `config/config.ini` (or to the directory of your choice) and edit the Locast username and password.  
+2) Create or copy the `config/config.ini.sample` file to `config/config.ini` (or to the directory of your choice) and edit the Locast username and password.  
 
->Your Locast username and password are the minimum configuration required. If you would like to adjust other options, feel free to include them in `config.ini` file using the same format.
+>Your Locast username and password are the minimum configuration required. If you would like to adjust other options, feel free to add them to the `config.ini` file using the same format.  _Do not change the bind address._
 
 3) Run your container using either docker-compose (working `docker-compose.yaml` included) or with `docker run -p 6077:6077 -v ./config/:/app/config -d locast2tuner`
 
-> If you placed `config.ini` in a custom directory in Step #2, then you will have to adjust the Docker volume mapping on the CLI or in `docker-compose.yaml`.
+> If you have placed `config.ini` in a custom directory in Step #2, then you will have to adjust the Docker volume mapping on the CLI or in `docker-compose.yaml`.
 
 

@@ -1,25 +1,28 @@
-# -*- mode: dockerfile -*-
-#
-# An example Dockerfile showing how to build a Rust executable using this
-# image, and deploy it with a tiny Alpine Linux container.
+#Download base image ubuntu 20.04                                               
+FROM ubuntu:20.04                                                               
+                                                                                
+# Disable Prompt During Packages Installation and useless warning               
+ARG DEBIAN_FRONTEND=noninteractive                                              
+ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1                                      
+                                                                                
+ARG BUILD_PACKAGES="gnupg2 wget ca-certificates apt-transport-https"            
+                                                                                
+# Install build and PPA packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+$BUILD_PACKAGES
 
-# You can override this `--build-arg BASE_IMAGE=...` to use different
-# version of Rust or OpenSSL.
-ARG BASE_IMAGE=ekidd/rust-musl-builder:latest
+# Add the PPA key and repo
+RUN wget -q -O - "https://wouterdebie.github.io/ppa/KEY.gpg" | apt-key add -
+RUN wget -q -O /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
 
-# Our first FROM statement declares the build environment.
-FROM ${BASE_IMAGE} AS builder
+# Update Ubuntu repository and install locast2tuner package
+RUN apt-get update && apt-get install -y --no-install-recommends \
+locast2tuner
 
-# Add our source code.
-ADD --chown=rust:rust . ./
+#Clean up
+RUN AUTO_ADDED_PACKAGES=`apt-mark showauto` \
+&& apt-get remove --purge -y $BUILD_PACKAGES $AUTO_ADDED_PACKAGES \
+&& apt-get -y clean \
+&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
-# Build our application.
-RUN cargo build --release
-
-# Now, we need to build our _real_ Docker container, copying in `using-diesel`.
-FROM alpine:latest
-
-COPY --from=builder \
-    /home/rust/src/target/x86_64-unknown-linux-musl/release/locast2tuner \
-    /usr/local/bin/
-ENTRYPOINT ["/usr/local/bin/locast2tuner", "--config", "/app/config/config.ini", "-a", "0.0.0.0"]
+ENTRYPOINT ["/usr/bin/locast2tuner", "--config", "/app/config/config.ini", "-a", "0.0.0.0"]
