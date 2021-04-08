@@ -24,7 +24,7 @@ This project isn't complete yet. It works, but there are a few things I'd like t
 ## Getting started
 Before you get started with installing and running locast2tuner, make sure you have an active [locast.org](https://locast.org) account with an active donation.
 ### Ubuntu/Debian
-Ubuntu/Debian packages are available:
+Ubuntu/Debian packages are available for both amd64 and arm7 (Raspbian):
 ```sh
 # Add the PPA key
 $ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
