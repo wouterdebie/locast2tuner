@@ -14,8 +14,8 @@ use itertools::Itertools;
 use log::{info, warn, LevelFilter};
 use service::multiplexer::Multiplexer;
 use simple_error::SimpleError;
-use std::io::Write;
 use std::sync::Arc;
+use std::{env, io::Write};
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 #[actix_web::main]
 async fn main() -> Result<(), SimpleError> {
@@ -29,8 +29,14 @@ async fn main() -> Result<(), SimpleError> {
     // Level 2 is debug and anything else defaults to trace.
     let log_level = match conf.verbose {
         0 | 1 => LevelFilter::Info,
-        2 => LevelFilter::Debug,
-        _ => LevelFilter::Trace,
+        2 => {
+            env::set_var("RUST_BACKTRACE", "1");
+            LevelFilter::Debug
+        }
+        _ => {
+            env::set_var("RUST_BACKTRACE", "1");
+            LevelFilter::Trace
+        }
     };
 
     // Create the proper log format, but only prefix the date and level if we
