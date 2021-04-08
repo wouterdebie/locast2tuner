@@ -41,7 +41,7 @@ impl Config {
                 (@arg config: -c --config +takes_value "Config File") //allow clap_conf config loader to work
                 (@arg username: -U --username +takes_value "Locast username")
                 (@arg password: -P --password +takes_value "Locast password")
-                (@arg bind_address: -b --bind-address +takes_value "Bind address (default: 127.0.0.1)")
+                (@arg bind_address: -b --bind_address +takes_value "Bind address (default: 127.0.0.1)")
                 (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
                 (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0")
                 (@arg multiplex: -m --multiplex "Multiplex devices")
