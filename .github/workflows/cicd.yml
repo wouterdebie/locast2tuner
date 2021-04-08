@@ -53,6 +53,57 @@ jobs:
           name: amd64deb
           path: ./target/x86_64-unknown-linux-musl/debian/*
 
+  amd64binaries:
+    # needs: [build, quickcheck]
+    runs-on: ubuntu-latest
+    name: Amd64StaticBinaries
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: StaticBinaryBuild
+        id: amd64staticbuild
+        uses: wouterdebie/cargo-deb-amd64-ubuntu@1.2
+        with:
+          cmd: cargo build --release --target=x86_64-unknown-linux-musl
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: amd64binaries
+          path: ./target/x86_64-unknown-linux-musl/release/locast2tuner
+
+  linuxamd64dockerbuild:
+    needs: [amd64binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+      - run: |
+          chmod +x ./amd64binaries/locast2tuner
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./assets/docker/Dockerfile
+          tags: ghcr.io/wouterdebie/locast2tuner:latest
+          push: true
+          platforms: linux/amd64
+
   ppa:
     needs: [debbuild]
     runs-on: ubuntu-latest
@@ -178,33 +229,6 @@ jobs:
   #     with:
   #       name: macos
   #       path: ./target/release/ebbflowd
-  # amd64binaries:
-  #   needs: [build, quickcheck]
-  #   runs-on: ubuntu-latest
-  #   name: Amd64StaticBinaries
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: StaticBinaryBuild
-  #     id: amd64staticbuild
-  #     uses: ebbflow-io/cargo-deb-amd64-ubuntu@1.0
-  #     with:
-  #       cmd: cargo build --release --target=x86_64-unknown-linux-musl
-  #   - name: Upload Daemon Artifact
-  #     uses: actions/upload-artifact@v2
-  #     with:
-  #       name: amd64binaries
-  #       path: ./target/x86_64-unknown-linux-musl/release/ebbflowd
-  #   - name: Upload Ebbflow Artifact
-  #     uses: actions/upload-artifact@v2
-  #     with:
-  #       name: amd64binaries
-  #       path: ./target/x86_64-unknown-linux-musl/release/ebbflow
-  #   - run: 'zip -j amd64binaries.zip ./target/x86_64-unknown-linux-musl/release/ebbflow ./target/x86_64-unknown-linux-musl/release/ebbflowd'
-  #   - name: Upload Zip Artifact
-  #     uses: actions/upload-artifact@v2
-  #     with:
-  #       name: amd64binaries
-  #       path: amd64binaries.zip
   # arm7binaries:
   #   needs: [build, quickcheck]
   #   runs-on: ubuntu-latest

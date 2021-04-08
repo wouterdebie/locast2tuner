@@ -1,12 +1,12 @@
 # locast2tuner
 
-This application provides an interface between locast.org and [Plex Media Server (PMS)](https://plex.tv) or [Emby](https://emby.media) by acting like a [HDHomerun](https://www.silicondust.com/) or an m3u Tuner and an XMLTV provider.
+This application provides an interface between locast.org and [Plex Media Server (PMS)](https://plex.tv) or [Emby](https://emby.media) by acting like an [HDHomerun](https://www.silicondust.com/) or an m3u Tuner and an XMLTV provider.
 
 `locast2tuner` can imitate one or more digital tuners and provides geo cloaking across regions.
 
 `locast2tuner` is a rewrite in Rust of [locast2dvr](https://github.com/wouterdebie/locast2dvr), which in turn is a rewrite of [locast2plex](https://github.com/tgorgdotcom/locast2plex). Thanks to the locast2plex developers for writing it and figuring out how to stitch things together!
 
-I rewrote locast2plex to be able to more easily add functionality, use libraries wherever possible (like HTTP, m3u, starting multiple devices, etc), heavily document, generally write clean code and provide a better user experience (command line argument parsing, automatic download of FCC facilities, etc). And since python's GIL gave me a headache, I rewrote the whole thing in Rust.
+I rewrote locast2plex to be able to more easily add functionality, use libraries wherever possible (like HTTP, m3u, starting multiple devices, etc), heavily document, generally write clean code, and provide a better user experience (command line argument parsing, automatic download of FCC facilities, etc). And since python's GIL gave me a headache, I rewrote the whole thing in Rust.
 
 Apart from the fact that everything is Rust now, the big difference between `locast2tuner` and `locast2dvr` is that `locast2tuner` does not require ffmpeg anymore. Actually, I completely dropped support for it and only implemented the `direct mode` that `locast2dvr` supports. Next to that, I removed a few debugging features (like --multiplex-debug), that don't seem to be used.
 
@@ -15,37 +15,17 @@ Even though this project started as a locast to PMS interface, it's more focused
 ## Features
 - Override your location using zipcode or GPS coordinates
 - Multiple digital tuners in a single server, either as separate servers or as one (multiplexing)
-- SSDP for easy discovery of Tuner devices in PMS or Emby
-- Acts like either a HDHomerun Tuner or m3u tuner
+- Acts like either an HDHomerun Tuner or m3u tuner
 - Provides locast EPG information as an XMLTV guide
 
 ## TODO
 This project isn't complete yet. It works, but there are a few things I'd like to get done. These can be found on the [Issues page](https://github.com/wouterdebie/locast2tuner/issues)
 
-## Build prerequisites
-- [Rust](https://www.rust-lang.org/) 1.50.0+
-- An active locast.org account with an active donation. Locast doesn't allow you to stream without a donation.
-##### MacOS
-```
-brew install rust
-```
-
-##### Linux
-```
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-## Build
-```sh
-$ git clone https://github.com/wouterdebie/locast2tuner
-$ cd locast2tuner
-$ cargo build
-```
-
-## Install
-
+## Getting started
+Before you get started with installing and running locast2tuner, make sure you have an active [locast.org](https://locast.org) account with an active donation.
 ### Ubuntu/Debian
-```
+Ubuntu/Debian packages are available:
+```sh
 # Add the PPA key
 $ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
 $ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
@@ -55,16 +35,42 @@ $ sudo apt install locast2tuner
 
 Create a config file in `/etc/locast2tuner/config.ini` and enable and start the service:
 
-```
+```sh
 $ sudo systemctl enable locast2tuner
 $ sudo systemctl start locast2tuner
 ```
 
+### Docker
+A Docker image is available from `ghcr.io/wouterdebie/locast2dvr:latest` and is built from this [Dockerfile](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile).
+
+To run:
+```sh
+# Create a config directory (e.g. $HOME/.locast2tuner) and copy the example file in there:
+$ mkdir $HOME/.locast2tuner
+$ curl -o $HOME/.locast2tuner/config.ini https://github.com/wouterdebie/locast2tuner/blob/main/assets/config.ini.example
+# ... edit the file ...
+$ docker pull ghcr.io/wouterdebie/locast2dvr:latest
+$ docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2dvr:latest
+```
+
+If you'd like to use `docker-compose` you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml).
 
 ### Other
+For other operating systems, you will have to compile locast2tuner from source. The only build requirement `locast2tuner` has is [Rust](https://www.rust-lang.org/) 1.50.0+.
 
-Since there are no packages available yet, you'll end up with a binary in `./target/debug/locast2tuner`. You can copy this to the directory of your choosing.
+#### Installing dependencies
+- MacOS: `brew install rust`
+- Linux: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
+#### Building
+```sh
+$ git clone https://github.com/wouterdebie/locast2tuner
+$ cd locast2tuner
+$ cargo build --release
+```
+
+#### Installing
+You'll end up with a binary in `./target/release/locast2tuner`. You can copy this to the directory of your choosing (`/usr/local/bin` is a good place to start).
 
 ## Usage
 ```
@@ -97,8 +103,22 @@ OPTIONS:
 ```
 
 ## Configuration
-`locast2tuner` parameters can be specified as either command line arguments or in a configuration file that can be specified using that `--config` argument.
+`locast2tuner` parameters can be specified as either command line arguments or in a configuration file that can be specified using the `--config` argument.
 
+The configuration file format is:
+
+```sh
+option1="<value1>"
+option2="<value2>"
+```
+
+Example:
+```sh
+username="<Locast username>"
+password="<Locast password>"
+```
+
+See [assets/config.ini.example](https://github.com/wouterdebie/locast2tuner/blob/main/assets/config.ini.example) for more.
 ### Location overrides
 
 By default `locast2tuner` uses your IP address to determine your location, but it also allows you to override the locast.org location you're creating a Tuner for:
@@ -111,7 +131,7 @@ By default `locast2tuner` uses your IP address to determine your location, but i
 
 When using multiple regions, `locast2tuner` will start multiple instances on TCP ports starting at the value that is specified with the `port` (or the default `6077`) argument and incremented by one and it will generate UUIDs for each tuner.
 
-Note: PMS supports multiple devices, but does not support multiple Electronic Programming Guides (EPGs). Emby does support both. I personally use Emby since it allows for multiple EPGs.
+Note: PMS supports multiple devices, but does not support multiple Electronic Programming Guides (EPGs). Emby supports both. I personally use Emby since it allows for multiple EPGs.
 
 ### Usage in PMS or Emby
 
@@ -133,3 +153,17 @@ For example: if you use `--multiplex --override_zipcodes=90210,55111`, all chann
 Note: This type of multiplexing makes sense in Emby, since you can add a single tuner at `http://PORT:IP` or `http://PORT:IP/lineup.m3u` and a single EPG at `http://PORT:IP/epg.xml`
 
 
+## Submitting bugs or feature requests
+### Bugs
+When you encounter a bug, please use [Github Issues](https://github.com/wouterdebie/locast2tuner/issues):
+- Add a detailed description of the issue you're experiencing.
+- Explain what steps can be taken to reproduce the issue.
+- If possible, add an excerpt of the logfile that shows the error.
+- Add a copy of your config. You can get a copy of your running config by opening `/config` in a browser (e.g [http://localhost:6077/config](http://localhost:6077/config)). This will not expose your locast password. If you can't access `/config`, please add your `config.ini` *without* your password.
+- Before submitting, mark the issue as a "Bug".
+
+### Feature requests
+When you have a features you'd like to see added, please use [Github Issues](https://github.com/wouterdebie/locast2tuner/issues) and mark the issue as an "Enhancement".
+
+### Pull requests
+If you're so awesome that you want to fix bugs or add features yourself, please fork this repository, code, and create a [Pull Request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests). Please [squash your commits](https://www.git-tower.com/learn/git/faq/git-squash/) into a single commit before sending the pull request.

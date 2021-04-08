@@ -1,6 +1,6 @@
 [package]
 name = "locast2tuner"
-version = "0.1.5"
+version = "0.1.6"
 description = "Locast.org to Plex Media Server/Emby integration server"
 authors = ["Wouter de Bie <wouter@evenflow.nl>"]
 repository = "https://github.com/wouterdebie/locast2tuner"
