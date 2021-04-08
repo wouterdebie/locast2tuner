@@ -17,12 +17,7 @@ RUN wget -q -O /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.gi
 
 # Update Ubuntu repository and install locast2tuner package
 RUN apt-get update && apt-get install -y --no-install-recommends \
-locast2tuner
-
-#Clean up
-RUN AUTO_ADDED_PACKAGES=`apt-mark showauto` \
-&& apt-get remove --purge -y $BUILD_PACKAGES $AUTO_ADDED_PACKAGES \
-&& apt-get -y clean \
+locast2tuner \
 && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
 ENTRYPOINT ["/usr/bin/locast2tuner", "--config", "/app/config/config.ini", "-a", "0.0.0.0"]
