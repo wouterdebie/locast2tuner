@@ -1,9 +1,11 @@
 on:
   push:
-    branches:
-      - main
-      - cicd
-      - "cicd/**"
+    tags:
+      - v*
+    # branches:
+    #   - main
+    #   - cicd
+    #   - "cicd/**"
 
 name: Continuous Integration
 
