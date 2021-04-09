@@ -41,7 +41,7 @@ $ sudo systemctl start locast2tuner
 ```
 
 ### Docker
-A Docker image is available from `ghcr.io/wouterdebie/locast2tuner/locast2tuner:latest` and is built from this [Dockerfile](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile).
+A Docker image is available from `ghcr.io/wouterdebie/locast2tuner:latest` and is built from this [Dockerfile](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile).
 
 To run:
 ```sh
@@ -49,7 +49,7 @@ To run:
 $ mkdir $HOME/.locast2tuner
 $ curl -o $HOME/.locast2tuner/config.ini https://github.com/wouterdebie/locast2tuner/blob/main/assets/config.ini.example
 # ... edit the file ...
-$ docker pull ghcr.io/wouterdebie/locast2tuner/locast2tuner:latest
+$ docker pull ghcr.io/wouterdebie/locast2tuner:latest
 $ docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
 ```
 

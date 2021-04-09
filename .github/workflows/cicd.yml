@@ -156,7 +156,7 @@ jobs:
         with:
           context: .
           file: ./assets/docker/Dockerfile
-          tags: ghcr.io/wouterdebie/locast2tuner/locast2tuner:latest
+          tags: ghcr.io/wouterdebie/locast2tuner:latest
           push: true
           platforms: linux/amd64
   # macosbuild:
