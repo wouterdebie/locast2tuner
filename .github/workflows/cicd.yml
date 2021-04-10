@@ -2,9 +2,9 @@ on:
   push:
     tags:
       - v*
-    # branches:
-    #   - main
-    #   - cicd
+    branches:
+      #   - main
+      - cicd
     #   - "cicd/**"
 
 name: Continuous Integration
@@ -161,6 +161,20 @@ jobs:
           tags: ghcr.io/wouterdebie/locast2tuner:latest
           push: true
           platforms: linux/amd64
+
+  update_homebrew:
+    runs-on: ubuntu-latest
+    name: Update homebrew
+    steps:
+      - name: Checkout homebrew tap repository
+        uses: actions/checkout@master
+      - name: Dispatch homebrew repo
+        run: |
+          export LATEST_TAG=$(git tag --sort=committerdate | tail -1)
+          curl -X POST https://api.github.com/repos/wouterdebie/homebrew-locast2tuner/dispatches \
+            -H 'Accept: application/vnd.github.everest-preview+json' \
+            -u ${{ secrets.CR_PAT }} \
+            --data '{"event_type": "new_tag", "client_payload": { "tag": "'"${LATEST_TAG}"'" }}'
   # macosbuild:
   #   needs: [quickcheck]
   #   runs-on: macos-latest
