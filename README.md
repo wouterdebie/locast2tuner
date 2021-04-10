@@ -40,6 +40,13 @@ $ sudo systemctl enable locast2tuner
 $ sudo systemctl start locast2tuner
 ```
 
+### MacOS
+A MacOS package is available though homebrew:
+```sh
+$ brew tap wouterdebie/repo
+$ brew install locast2tuner
+```
+
 ### Docker
 A Docker image is available from `ghcr.io/wouterdebie/locast2tuner:latest` and is built from this [Dockerfile](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile).
 
