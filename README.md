@@ -1,6 +1,6 @@
 # locast2tuner
 
-This application provides an interface between locast.org and [Plex Media Server (PMS)](https://plex.tv) or [Emby](https://emby.media) by acting like an [HDHomerun](https://www.silicondust.com/) or an m3u Tuner and an XMLTV provider.
+This application provides an interface between locast.org and [Plex Media Server (PMS)](https://plex.tv) or [Emby](https://emby.media) by acting like an [HDHomerun](https://www.silicondust.com/) or an m3u tuner and an XMLTV provider.
 
 `locast2tuner` can imitate one or more digital tuners and provides geo cloaking across regions.
 
@@ -15,7 +15,7 @@ Even though this project started as a locast to PMS interface, it's more focused
 ## Features
 - Override your location using ZIP code or GPS coordinates
 - Multiple digital tuners in a single server, either as separate servers or as one (multiplexing)
-- Acts like either an HDHomerun Tuner or m3u tuner
+- Acts like either an HDHomerun or an m3u tuner
 - Provides locast EPG information as an XMLTV guide
 
 ## TODO
@@ -126,6 +126,10 @@ password="<Locast password>"
 ```
 
 See [assets/config.ini.example](https://github.com/wouterdebie/locast2tuner/blob/main/assets/config.ini.example) for more.
+
+### Quickstart for Plex and Emby
+
+Along with the technical info below, detailed instructions are available for integrating `locast2tuner` with both [Plex](docs/01_plex.md) and [Emby](docs/02_emby.md) if you want to get started quickly.
 ### Location overrides
 
 By default `locast2tuner` uses your IP address to determine your location, but it also allows you to override the locast.org location you're creating a Tuner for:
@@ -141,7 +145,6 @@ When using multiple regions, `locast2tuner` will start multiple instances on TCP
 Note: PMS supports multiple devices, but does not support multiple Electronic Programming Guides (EPGs). Emby supports both. I personally use Emby since it allows for multiple EPGs.
 
 ### Usage in PMS or Emby
-
 #### Tuners
 `locast2tuner` can act as both a HDHomerun device or as an m3u tuner. Plex mainly supports HDHomerun, while Emby supports both. In case `locast2tuner` is used as an HDHomerun device it will copy the `mpegts` stream from locast to the Media server. When using `locast2tuner` as an m3u tuner, it will pass on the m3u from locast to the media server without any decoding.
 
@@ -149,7 +152,7 @@ Note: PMS supports multiple devices, but does not support multiple Electronic Pr
 - For use as an m3u tuner, use `http://IP:PORT/tuner.m3u` (defaults to `http://127.0.0.1:6077/tuner.m3u`) as the URL to connect.
 
 #### EPG
-`locast2tuner` also provides Electronic Programming Guide (EPG) information from locast. This is served in [XMLTV](http://wiki.xmltv.org/) format. Emby and PMS both have support for XMLTV which can be used by adding `http://IP:PORT/epg.xml`  (defaults to `http://127.0.0.1:6077/epg.xml`) as an XMLTV TV Guide Data Provider.
+`locast2tuner` also provides Electronic Programming Guide (EPG) information from locast. This is served in [XMLTV](http://wiki.xmltv.org/) format. Emby and PMS both have support for XMLTV which can be used by adding `http://IP:PORT/epg.xml`  (defaults to `http://127.0.0.1:6077/epg.xml`) as an XMLTV TV Guide Data Provider. 
 
 ### Multiplexing
 
