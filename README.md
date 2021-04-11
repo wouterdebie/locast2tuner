@@ -41,7 +41,7 @@ $ sudo systemctl start locast2tuner
 ```
 
 ### MacOS
-A MacOS package is available though homebrew:
+A MacOS package is available though [Homebrew](https://brew.sh/):
 ```sh
 $ brew tap wouterdebie/repo
 $ brew install locast2tuner
@@ -60,8 +60,9 @@ $ docker pull ghcr.io/wouterdebie/locast2tuner:latest
 $ docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
 ```
 
-If you'd like to use `docker-compose` you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml).
+If you'd like to use `docker-compose` you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml). 
 
+>**Note:** The instructions above will work with Docker on Linux and Mac.  If you are using Docker for Windows, you will have to modify the volume mapping (`-v`) accordingly.  You may also have to run `dos2unix config.ini` before launching the container to remove DOS/Windows carriage-returns.
 ### Other
 For other operating systems, you will have to compile locast2tuner from source. The only build requirement `locast2tuner` has is [Rust](https://www.rust-lang.org/) 1.50.0+.
 
