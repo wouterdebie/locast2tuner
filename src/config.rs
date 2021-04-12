@@ -9,26 +9,27 @@ use std::path::PathBuf;
 use uuid::Uuid;
 #[derive(Default, Debug, Serialize, Clone)]
 pub struct Config {
-    pub username: String,
-    pub password: String,
-    pub bind_address: String,
-    pub port: u16,
-    pub verbose: u8,
-    pub multiplex: bool,
+    // pub logfile: Option<String>,
     // pub override_location: Option<String>,
-    pub override_zipcodes: Option<Vec<String>>,
-    pub tuner_count: u8,
-    pub device_model: String,
-    pub device_firmware: String,
-    pub device_version: String,
-    pub disable_station_cache: bool,
+    pub bind_address: String,
+    pub cache_directory: PathBuf,
     pub cache_timeout: u64,
     pub days: u8,
+    pub device_firmware: String,
+    pub device_model: String,
+    pub device_version: String,
+    pub disable_station_cache: bool,
+    pub force_timestamps: bool,
+    pub multiplex: bool,
+    pub override_zipcodes: Option<Vec<String>>,
+    pub password: String,
+    pub port: u16,
     pub remap: bool,
     pub ssdp: bool,
-    // pub logfile: Option<String>,
-    pub cache_directory: PathBuf,
+    pub tuner_count: u8,
+    pub username: String,
     pub uuid: String,
+    pub verbose: u8,
 }
 impl Config {
     pub fn from_args_and_file() -> Result<Config, SimpleError> {
@@ -37,24 +38,25 @@ impl Config {
                 (version: crate_version!())
                 (author: "Wouter de Bie")
                 (about: "Locast to tuner")
-                (@arg config: -c --config +takes_value "Config File") //allow clap_conf config loader to work
-                (@arg username: -U --username +takes_value "Locast username")
-                (@arg password: -P --password +takes_value "Locast password")
                 (@arg bind_address: -b --bind_address +takes_value "Bind address (default: 127.0.0.1)")
-                (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
-                (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0)")
-                (@arg multiplex: -m --multiplex "Multiplex devices")
-                (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override zipcodes")
-                (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 3)")
-                (@arg device_model: --device_model +takes_value "Device model (default: HDHR3-US)")
+                (@arg cache_dir: --cache_dir +takes_value "Cache directory (default: $HOME/.locast2tuner)")
+                (@arg cache_timeout: --cache_timeout +takes_value "Cache timeout (default: 3600)")
+                (@arg config: -c --config +takes_value "Config File") //allow clap_conf config loader to work
+                (@arg days: -d --days +takes_value "Nr. of days to get EPG data for (default: 8)")
                 (@arg device_firmware: --device_firmware +takes_value "Device firmware (default: hdhomerun3_atsc)")
+                (@arg device_model: --device_model +takes_value "Device model (default: HDHR3-US)")
                 (@arg device_version: --device_version +takes_value "Device version (default: 20170612)")
                 (@arg disable_station_cache: --disable_station_cache "Disable stations cache")
-                (@arg cache_timeout: --cache_timeout +takes_value "Cache timeout (default: 3600)")
-                (@arg cache_dir: --cache_dir +takes_value "Cache directory (default: $HOME/.locast2tuner)")
-                (@arg days: -d --days +takes_value "Nr. of days to get EPG data for (default: 8)")
+                (@arg force_timestamps: --force_timestamps "Force logging timestamps")
+                (@arg multiplex: -m --multiplex "Multiplex devices")
+                (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override zipcodes")
+                (@arg password: -P --password +takes_value "Locast password")
+                (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
                 (@arg remap: -r --remap "Remap channels when multiplexed")
                 (@arg ssdp: -s --ssdp "Enable SSDP")
+                (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 3)")
+                (@arg username: -U --username +takes_value "Locast username")
+                (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0)")
                 // (@arg logfile: -l --logfile +takes_value "Log file location")
 
         )
@@ -85,7 +87,8 @@ impl Config {
         conf.verbose = cfg.grab().arg("verbose").conf("verbose").t_def::<u8>(0);
         conf.multiplex =
             cfg.bool_flag("multiplex", Filter::Arg) || cfg.bool_flag("multiplex", Filter::Conf);
-
+        conf.force_timestamps =
+            cfg.bool_flag("force_timestamps", Filter::Arg) || cfg.bool_flag("force_timestamps", Filter::Conf);
         let oz = cfg
             .grab()
             .arg("override_zipcodes")

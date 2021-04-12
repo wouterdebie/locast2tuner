@@ -39,12 +39,14 @@ async fn main() -> Result<(), SimpleError> {
         }
     };
 
+    let force_timestamps = conf.clone().force_timestamps;
+
     // Create the proper log format, but only prefix the date and level if we
     // have a tty, since we don't want to log date and level twice when using
     // syslog or something.
     Builder::new()
-        .format(|buf, record| {
-            if atty::is(Stream::Stdout) {
+        .format(move |buf, record| {
+            if atty::is(Stream::Stdout) || force_timestamps {
                 writeln!(
                     buf,
                     "{} [{}] - {}",
@@ -66,7 +68,7 @@ async fn main() -> Result<(), SimpleError> {
         sys_info::os_release().unwrap()
     );
 
-    info!("UUID: {}", conf.uuid);
+    info!("UUID: {}", conf.clone().uuid);
 
     // Login to locast and get credentials we pass around
     let credentials = Arc::new(credentials::LocastCredentials::new(conf.clone()).await);
