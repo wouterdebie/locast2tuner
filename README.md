@@ -1,5 +1,6 @@
 # locast2tuner
-
+![build status](https://github.com/wouterdebie/locast2tuner/actions/workflows/release.yml/badge.svg)
+g
 This application provides an interface between locast.org and [Plex Media Server (PMS)](https://plex.tv) or [Emby](https://emby.media) by acting like an [HDHomerun](https://www.silicondust.com/) or an m3u tuner and an XMLTV provider.
 
 `locast2tuner` can imitate one or more digital tuners and provides geo cloaking across regions.
