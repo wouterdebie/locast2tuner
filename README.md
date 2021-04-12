@@ -60,11 +60,11 @@ $ docker pull ghcr.io/wouterdebie/locast2tuner:latest
 $ docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
 ```
 
-If you'd like to use `docker-compose` you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml). 
+If you'd like to use `docker-compose` you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml).
 
 >**Note:** The instructions above will work with Docker on Linux and Mac.  If you are using Docker for Windows, you will have to modify the volume mapping (`-v`) accordingly.  You may also have to run `dos2unix config.ini` before launching the container to remove DOS/Windows carriage-returns.
-### Other
-For other operating systems, you will have to compile locast2tuner from source. The only build requirement `locast2tuner` has is [Rust](https://www.rust-lang.org/) 1.50.0+.
+### Building from source
+The only build requirement `locast2tuner` has is [Rust](https://www.rust-lang.org/) 1.50.0+.
 
 #### Installing dependencies
 - MacOS: `brew install rust`
@@ -87,6 +87,7 @@ USAGE:
 
 FLAGS:
         --disable_station_cache    Disable stations cache
+        --force_timestamps         Force logging timestamps
     -h, --help                     Prints help information
     -m, --multiplex                Multiplex devices
     -r, --remap                    Remap channels when multiplexed
@@ -102,7 +103,7 @@ OPTIONS:
         --device_firmware <device_firmware>        Device firmware (default: hdhomerun3_atsc)
         --device_model <device_model>              Device model (default: HDHR3-US)
         --device_version <device_version>          Device version (default: 20170612)
-    -z, --override_zipcodes <override_zipcodes>    Override ZIP codes
+    -z, --override_zipcodes <override_zipcodes>    Override zipcodes
     -P, --password <password>                      Locast password
     -p, --port <port>                              Bind TCP port (default: 6077)
         --tuner_count <tuner_count>                Tuner count (default: 3)
@@ -116,14 +117,17 @@ OPTIONS:
 The configuration file format is:
 
 ```sh
-option1="<value1>"
-option2="<value2>"
+string_option = "<value1>"
+flag = <true/false>
+numerical_option = <number>
 ```
 
 Example:
 ```sh
-username="<Locast username>"
-password="<Locast password>"
+username = "<Locast username>"
+password = "<Locast password>"
+verbose = 2
+multiplex = true
 ```
 
 See [assets/config.ini.example](https://github.com/wouterdebie/locast2tuner/blob/main/assets/config.ini.example) for more.
@@ -153,7 +157,7 @@ Note: PMS supports multiple devices, but does not support multiple Electronic Pr
 - For use as an m3u tuner, use `http://IP:PORT/tuner.m3u` (defaults to `http://127.0.0.1:6077/tuner.m3u`) as the URL to connect.
 
 #### EPG
-`locast2tuner` also provides Electronic Programming Guide (EPG) information from locast. This is served in [XMLTV](http://wiki.xmltv.org/) format. Emby and PMS both have support for XMLTV which can be used by adding `http://IP:PORT/epg.xml`  (defaults to `http://127.0.0.1:6077/epg.xml`) as an XMLTV TV Guide Data Provider. 
+`locast2tuner` also provides Electronic Programming Guide (EPG) information from locast. This is served in [XMLTV](http://wiki.xmltv.org/) format. Emby and PMS both have support for XMLTV which can be used by adding `http://IP:PORT/epg.xml`  (defaults to `http://127.0.0.1:6077/epg.xml`) as an XMLTV TV Guide Data Provider.
 
 ### Multiplexing
 
