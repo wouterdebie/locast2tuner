@@ -28,12 +28,20 @@ Ubuntu/Debian packages are available for both amd64 and arm7 (Raspbian):
 ```sh
 # Add the PPA key
 $ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
+# Add the locast2tuner repository
 $ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
 $ sudo apt update
+# Install locast2tuner
 $ sudo apt install locast2tuner
 ```
 
-Create a config file in `/etc/locast2tuner/config.ini` and enable and start the service:
+Create a config file. Don't forget to edit the config file!
+```sh
+$ sudo cp /etc/locast2tuner/config.ini.example /etc/locast2tuner/config.ini
+# Edit the config file
+$ nano /etc/locast2tuner/config.ini
+```
+Finally, enable and start the service:
 
 ```sh
 $ sudo systemctl enable locast2tuner
@@ -54,7 +62,7 @@ To run:
 ```sh
 # Create a config directory (e.g. $HOME/.locast2tuner) and copy the example file in there:
 $ mkdir $HOME/.locast2tuner
-$ curl -o $HOME/.locast2tuner/config.ini https://github.com/wouterdebie/locast2tuner/blob/main/assets/config.ini.example
+$ curl -o $HOME/.locast2tuner/config.ini https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.ini.example
 # ... edit the file ...
 $ docker pull ghcr.io/wouterdebie/locast2tuner:latest
 $ docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
@@ -130,7 +138,7 @@ verbose = 2
 multiplex = true
 ```
 
-See [assets/config.ini.example](https://github.com/wouterdebie/locast2tuner/blob/main/assets/config.ini.example) for more.
+See [assets/config.ini.example](https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.ini.example) for more information and a description of each option.
 
 ### Quickstart for Plex and Emby
 
@@ -150,23 +158,26 @@ When using multiple regions, `locast2tuner` will start multiple instances on TCP
 Note: PMS supports multiple devices, but does not support multiple Electronic Programming Guides (EPGs). Emby supports both. I personally use Emby since it allows for multiple EPGs.
 
 ### Usage in PMS or Emby
-#### Tuners
-`locast2tuner` can act as both a HDHomerun device or as an m3u tuner. Plex mainly supports HDHomerun, while Emby supports both. In case `locast2tuner` is used as an HDHomerun device it will copy the `mpegts` stream from locast to the Media server. When using `locast2tuner` as an m3u tuner, it will pass on the m3u from locast to the media server without any decoding.
+#### Tuner emulation
+`locast2tuner` can act as both a HDHomerun device or as an m3u tuner. Plex mainly supports HDHomerun, while Emby supports both. In case `locast2tuner` is used as an HDHomerun device it will copy the `mpegts` stream from locast to the Media server. When using `locast2tuner` as an m3u tuner, it will pass on the m3u from locast to the media server without any stream interference. This means that the media server will directly connect to
+the stream.
 
 - For use as a HDHomerun tuner, use `IP:PORT` (defaults to `127.0.0.1:6077`) to connect
 - For use as an m3u tuner, use `http://IP:PORT/tuner.m3u` (defaults to `http://127.0.0.1:6077/tuner.m3u`) as the URL to connect.
 
 #### EPG
-`locast2tuner` also provides Electronic Programming Guide (EPG) information from locast. This is served in [XMLTV](http://wiki.xmltv.org/) format. Emby and PMS both have support for XMLTV which can be used by adding `http://IP:PORT/epg.xml`  (defaults to `http://127.0.0.1:6077/epg.xml`) as an XMLTV TV Guide Data Provider.
+`locast2tuner` also provides Electronic Programming Guide (EPG) information from locast.org. This is served in the [XMLTV](http://wiki.xmltv.org/) format. Emby and PMS both have support for XMLTV which can be used by adding `http://IP:PORT/epg.xml`  (defaults to `http://127.0.0.1:6077/epg.xml`) as an XMLTV TV Guide Data Provider.
 
 ### Multiplexing
 
-`locast2tuner` normally starts an HTTP instance for each Tuner, starting at `port` (default `6077`). But with the option `--multiplex`, it will start a single HTTP interface multiplexing all Tuners through one interface for both streaming and EPG. Any channels that have the same call sign (like 4.1 ABC) will be deduped.
+`locast2tuner` normally starts an HTTP instance for each Tuner, starting at `port` (default `6077`). But with the option `--multiplex`, it will start a single HTTP interface multiplexing all Tuners through one interface for both streaming and EPG.
 
 For example: if you use `--multiplex --override_zipcodes=90210,55111`, all channels from both ZIP codes will be available, but multiplexed at `localhost:6077`.
 
 Note: This type of multiplexing makes sense in Emby, since you can add a single tuner at `http://PORT:IP` or `http://PORT:IP/lineup.m3u` and a single EPG at `http://PORT:IP/epg.xml`
 
+### Remapping
+In case you override multiple zip codes, Emby and Plex will sort channels by channel number, which means channels from different locations might be intermingled. In order circumvent this, you can use `--remap`. This causes locast2tuner to rewrite the channel number based on the amount of instances there are. Locast will remap a "channel_number" to "channel_number + 100 * instance_number", where the instance_number starts at 0. E.g. you override 3 zip codes, then the channels from the first location will be untouched (since 100*0 == 0 the stations for the second location will start at 100 (e.g. 2.1 CBS becomes 102.1 CBS) and the stations for the third location will start at 200 (e.g. 13.2 WWFF becomes 213.2 WWFF).
 
 ## Submitting bugs or feature requests
 ### Bugs
