@@ -2,33 +2,10 @@ on:
   push:
     tags:
       - v*
-    branches:
-      #   - main
-      - cicd
-    #   - "cicd/**"
 
-name: Continuous Integration
+name: Release Build
 
 jobs:
-  # quickcheck:
-  # runs-on: ubuntu-latest
-  # outputs:
-  #   version: ${{ steps.rustversion.outputs.rustversion }}
-  # steps:
-  #   - uses: actions/checkout@v2
-  #   - uses: actions/cache@v2
-  #     with:
-  #       path: |
-  #         ~/.cargo/registry
-  #         ~/.cargo/git
-  #         target
-  #       key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-  #   - run: cargo check
-  #   - run: cargo pkgid
-  #   - run: 'echo "$(cargo pkgid | cut -d# -f2)"'
-  #   - id: rustversion
-  #     run: 'echo "::set-output name=rustversion::$(cargo pkgid | cut -d# -f2)"'
-
   debbuild:
     runs-on: ubuntu-latest
     name: Build .deb (amd64)
@@ -175,6 +152,24 @@ jobs:
             -H 'Accept: application/vnd.github.everest-preview+json' \
             -u ${{ secrets.CR_PAT }} \
             --data '{"event_type": "new_tag", "client_payload": { "tag": "'"${LATEST_TAG}"'" }}'
+  # quickcheck:
+  # runs-on: ubuntu-latest
+  # outputs:
+  #   version: ${{ steps.rustversion.outputs.rustversion }}
+  # steps:
+  #   - uses: actions/checkout@v2
+  #   - uses: actions/cache@v2
+  #     with:
+  #       path: |
+  #         ~/.cargo/registry
+  #         ~/.cargo/git
+  #         target
+  #       key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+  #   - run: cargo check
+  #   - run: cargo pkgid
+  #   - run: 'echo "$(cargo pkgid | cut -d# -f2)"'
+  #   - id: rustversion
+  #     run: 'echo "::set-output name=rustversion::$(cargo pkgid | cut -d# -f2)"'
   # macosbuild:
   #   needs: [quickcheck]
   #   runs-on: macos-latest
