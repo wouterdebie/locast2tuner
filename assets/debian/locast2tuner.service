@@ -4,7 +4,7 @@ Description=locast2tuner
 [Service]
 User=locast2tuner
 Group=locast2tuner
-ExecStart=/usr/bin/locast2tuner -c /etc/locast2tuner/config.ini --cache_dir /var/lib/locast2tuner
+ExecStart=/usr/bin/locast2tuner -c /etc/locast2tuner/config --cache_dir /var/lib/locast2tuner
 
 [Install]
 WantedBy=multi-user.target

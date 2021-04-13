@@ -70,9 +70,9 @@ $ sudo apt install locast2tuner
 
 Create a config file. Don't forget to edit the config file!
 ```sh
-$ sudo cp /etc/locast2tuner/config.ini.example /etc/locast2tuner/config.ini
+$ sudo cp /etc/locast2tuner/config.example /etc/locast2tuner/config
 # Edit the config file
-$ nano /etc/locast2tuner/config.ini
+$ nano /etc/locast2tuner/config
 ```
 Finally, enable and start the service:
 
@@ -94,7 +94,7 @@ To run:
 ```sh
 # Create a config directory (e.g. $HOME/.locast2tuner) and copy the example file in there:
 $ mkdir $HOME/.locast2tuner
-$ curl -o $HOME/.locast2tuner/config.ini https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.ini.example
+$ curl -o $HOME/.locast2tuner/config https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example
 # ... edit the file ...
 $ docker pull ghcr.io/wouterdebie/locast2tuner:latest
 $ docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
@@ -102,7 +102,7 @@ $ docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tune
 
 If you'd like to use `docker-compose` you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml).
 
->**Note:** The instructions above will work with Docker on Linux and Mac.  If you are using Docker for Windows, you will have to modify the volume mapping (`-v`) accordingly.  You may also have to run `dos2unix config.ini` before launching the container to remove DOS/Windows carriage-returns.
+>**Note:** The instructions above will work with Docker on Linux and Mac.  If you are using Docker for Windows, you will have to modify the volume mapping (`-v`) accordingly.  You may also have to run `dos2unix config` before launching the container to remove DOS/Windows carriage-returns.
 ## Building from source
 The only build requirement `locast2tuner` has is [Rust](https://www.rust-lang.org/) 1.50.0+.
 
@@ -123,7 +123,7 @@ You'll end up with a binary in `./target/release/locast2tuner`. You can copy thi
 # Usage
 For usage options, please run `locast2tuner -h`.
 # Configuration
-`locast2tuner` parameters can be specified as either command line arguments or in a configuration file that can be specified using the `--config` argument.
+`locast2tuner` parameters can be specified as either command line arguments or in a [TOML](https://github.com/toml-lang/toml) configuration file that can be specified using the `--config` argument.
 
 The configuration file format is:
 
@@ -131,6 +131,7 @@ The configuration file format is:
 string_option = "<value1>"
 flag = <true/false>
 numerical_option = <number>
+list_option = ["<value1>", "<value2">]
 ```
 
 Example:
@@ -139,9 +140,13 @@ username = "<Locast username>"
 password = "<Locast password>"
 verbose = 2
 multiplex = true
+override_zipcodes = ["85355", "90210"]
 ```
 
-See [assets/config.ini.example](https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.ini.example) for more information and a description of each option.
+See [assets/config.example](https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example) for more information and a description of each option.
+
+## Displaying running config
+You can display your running config (which could be a combination of a config file and command line parameters) by opening the `/config` path (e.g. `http://127.0.0.1:6077/config.tml`). Normally the password is obfuscated, but if you add the query parameter `show_password` (e.g. `http://127.0.0.1:6077/config?showpass`), the password will become visible.
 
 ## Quickstart guides for Plex and Emby
 
@@ -187,7 +192,7 @@ When you encounter a bug, please use [Github Issues](https://github.com/wouterde
 - Add a detailed description of the issue you're experiencing.
 - Explain what steps can be taken to reproduce the issue.
 - If possible, add an excerpt of the log file that shows the error.
-- Add a copy of your config. You can get a copy of your running config by opening `/config` in a browser (e.g [http://localhost:6077/config](http://localhost:6077/config)). This will not expose your locast password. If you can't access `/config`, please add your `config.ini` *without* your password.
+- Add a copy of your config. You can get a copy of your running config by opening `/config` in a browser (e.g [http://localhost:6077/config](http://localhost:6077/config)). This will not expose your locast password. If you can't access `/config`, please add your config file *without* your password.
 - Before submitting, mark the issue as a "Bug".
 
 ## Feature requests

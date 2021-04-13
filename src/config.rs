@@ -28,6 +28,7 @@ pub struct Config {
     pub ssdp: bool,
     pub tuner_count: u8,
     pub username: String,
+    #[serde(skip_serializing)]
     pub uuid: String,
     pub verbose: u8,
 }
@@ -63,7 +64,7 @@ impl Config {
         .get_matches();
 
         let mut conf = Self::default();
-        let cfg = clap_conf::with_toml_env(&clap, &["/etc/locast2tuner/config.ini"]);
+        let cfg = clap_conf::with_toml_env(&clap, &["/etc/locast2tuner/config"]);
         conf.username = cfg
             .grab()
             .arg("username")
@@ -87,17 +88,23 @@ impl Config {
         conf.verbose = cfg.grab().arg("verbose").conf("verbose").t_def::<u8>(0);
         conf.multiplex =
             cfg.bool_flag("multiplex", Filter::Arg) || cfg.bool_flag("multiplex", Filter::Conf);
-        conf.force_timestamps =
-            cfg.bool_flag("force_timestamps", Filter::Arg) || cfg.bool_flag("force_timestamps", Filter::Conf);
-        let oz = cfg
-            .grab()
-            .arg("override_zipcodes")
-            .conf("override_zipcodes")
-            .done();
+        conf.force_timestamps = cfg.bool_flag("force_timestamps", Filter::Arg)
+            || cfg.bool_flag("force_timestamps", Filter::Conf);
 
-        conf.override_zipcodes = match oz {
+        // First check if there's a comma-separated list from the command line
+        conf.override_zipcodes = match cfg.grab().arg("override_zipcodes").done() {
             Some(o) => Some(o.split(',').map(|x| x.to_string()).collect()),
-            None => None,
+            None => {
+                match cfg.grab().conf("override_zipcodes").done() {
+                    // Overrides are defined as a regular string (old format)
+                    Some(o) => Some(o.split(',').map(|x| x.to_string()).collect()),
+                    // Overrides are defined as an arra (new format)
+                    None => match cfg.grab_multi().conf("override_zipcodes").done() {
+                        Some(o) => Some(o.collect()),
+                        None => None,
+                    },
+                }
+            }
         };
 
         conf.tuner_count = cfg
