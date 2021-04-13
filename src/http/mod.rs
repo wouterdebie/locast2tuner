@@ -1,4 +1,4 @@
-mod xml_templates;
+mod templates;
 use crate::utils::base_url;
 use crate::{config::Config, service::stationprovider::StationProvider, utils::Or};
 use actix_web::middleware::Condition;
@@ -141,7 +141,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
 async fn device_xml<T: 'static + StationProvider>(req: HttpRequest) -> HttpResponse {
     let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
     let host = req.connection_info().host().to_string();
-    let result = xml_templates::device_xml::<T>(&data.config, &data.service, host);
+    let result = templates::device_xml::<T>(&data.config, &data.service, host);
     HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
@@ -150,14 +150,14 @@ async fn lineup_xml<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespo
     let host = req.connection_info().host().to_string();
     let stations_mutex = data.service.stations();
     let stations = stations_mutex.await;
-    let result = xml_templates::lineup_xml(&*stations.lock().await, host);
+    let result = templates::lineup_xml(&*stations.lock().await, host);
     HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
 async fn epg_xml<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let stations_mutex = data.service.stations();
     let stations = stations_mutex.await;
-    let result = xml_templates::epg_xml(&*stations.lock().await);
+    let result = templates::epg_xml(&*stations.lock().await);
     HttpResponse::Ok().content_type("text/xml").body(result)
 }
 
@@ -320,10 +320,15 @@ async fn lineup_json<T: 'static + StationProvider>(req: HttpRequest) -> HttpResp
 
     HttpResponse::Ok().json(lineup)
 }
-async fn show_config<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
-    let mut config = (*data.config).clone();
-    config.password = "*******".to_string();
-    HttpResponse::Ok().json(&config)
+async fn show_config<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
+    let mut config = (*req.app_data::<web::Data<AppState<T>>>().unwrap().config).clone();
+
+    if req.query_string() != "show_password" {
+        config.password = "*******".to_string();
+    }
+
+    let result = toml::to_string(&config).unwrap();
+    HttpResponse::Ok().content_type("text/plain").body(result)
 }
 
 async fn epg<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {

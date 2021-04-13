@@ -19,7 +19,7 @@ section = "utility"
 priority = "optional"
 assets = [
     ["README.md", "usr/share/doc/locast2tuner/README", "644"],
-    ["assets/config.ini.example", "etc/locast2tuner/config.ini.example", "644"],
+    ["assets/config.example", "etc/locast2tuner/config.example", "644"],
     ["target/release/locast2tuner", "/usr/bin/locast2tuner", "755"],
 
 ]
@@ -55,6 +55,7 @@ string-builder = "0.2.0"
 sys-info = "0.8.0"
 timer = "0.2.0"
 tokio = "1.4.0"
+toml = "0.5"
 tz-search = "0.1.1"
 url = "2.2.1"
 uuid = { version = "0.8", features = ["serde", "v4", "v5"] }

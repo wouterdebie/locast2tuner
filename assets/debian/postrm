@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-L2T_CONF="/etc/locast2tuner/config.ini"
+L2T_CONF="/etc/locast2tuner/config"
 
 case "$1" in
 purge)

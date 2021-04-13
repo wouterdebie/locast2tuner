@@ -12,6 +12,6 @@ Cargo.lock
 
 # Other files that should stay local
 
-config.ini
+config.*
 .vscode/
 .DS_Store
