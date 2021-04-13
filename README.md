@@ -23,6 +23,7 @@ This application provides an interface between locast.org and [Plex Media Server
          * [Installing](#installing)
    * [Usage](#usage)
    * [Configuration](#configuration)
+      * [Displaying running config](#displaying-running-config)
       * [Quickstart guides for Plex and Emby](#quickstart-guides-for-plex-and-emby)
       * [Location overrides](#location-overrides)
       * [Multi regions](#multi-regions)
