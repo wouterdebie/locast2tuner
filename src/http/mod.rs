@@ -1,10 +1,10 @@
 mod templates;
 use crate::utils::base_url;
 use crate::{config::Config, service::stationprovider::StationProvider, utils::Or};
-use actix_web::middleware::Condition;
 use actix_web::middleware::Logger;
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::{middleware::Compat, Error};
+use actix_web::{middleware::Condition, ResponseError};
 use chrono::{DateTime, Utc};
 use futures::{future, lock::Mutex, stream, Stream};
 use log::info;
@@ -340,24 +340,32 @@ async fn epg<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder
 async fn watch_m3u<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
     let id = req.match_info().get("id").unwrap().to_string();
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
-    let url_mutex = service.station_stream_uri(id).await;
-    let url = url_mutex.lock().await;
+    match service.station_stream_uri(id).await {
+        Ok(url_mutex) => {
+            let url = url_mutex.lock().await;
 
-    HttpResponse::TemporaryRedirect()
-        .append_header((LOCATION, &*url.as_str()))
-        .finish()
+            HttpResponse::TemporaryRedirect()
+                .append_header((LOCATION, &*url.as_str()))
+                .finish()
+        }
+        Err(e) => e.error_response(),
+    }
 }
 
 async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
     let id = req.match_info().get("id").unwrap().to_string();
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
-    let url_mutex = service.station_stream_uri(id).await;
-    let url = url_mutex.lock().await;
-    let stream = get_stream(&*url);
+    match service.station_stream_uri(id).await {
+        Ok(url_mutex) => {
+            let url = url_mutex.lock().await;
+            let stream = get_stream(&*url);
 
-    HttpResponse::Ok()
-        .content_type("video/mpeg; codecs='avc1.4D401E'")
-        .streaming(Box::pin(stream))
+            HttpResponse::Ok()
+                .content_type("video/mpeg; codecs='avc1.4D401E'")
+                .streaming(Box::pin(stream))
+        }
+        Err(e) => e.error_response(),
+    }
 }
 
 struct StreamState {
@@ -379,11 +387,11 @@ fn get_stream(url: &str) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
     };
 
     stream::unfold(state, |mut state| async move {
-        let m3u_data = crate::utils::get(&state.url, None)
-            .await
-            .text()
-            .await
-            .unwrap();
+        let m3u_data = match crate::utils::get(&state.url, None, 5).await {
+            Err(_) => return None,
+            Ok(r) => r.text().await.unwrap(),
+        };
+
         let media_playlist = hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()).unwrap();
         let base_url = base_url(Url::parse(&state.url).unwrap());
 
@@ -429,12 +437,11 @@ fn get_stream(url: &str) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
             tokio::time::sleep(tokio::time::Duration::from_secs_f32(wait)).await;
         }
 
-        let chunk = crate::utils::get(&first.url, None)
-            .await
-            .bytes()
-            .await
-            .unwrap()
-            .to_vec();
+        let chunk = match crate::utils::get(&first.url, None, 10).await {
+            Err(_) => return None,
+            Ok(r) => r.bytes().await.unwrap().to_vec(),
+        };
+
         first.played = true;
         info!(
             "Stream {} - playing: segment {:?}",

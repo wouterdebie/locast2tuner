@@ -2,7 +2,6 @@ use crate::config::Config;
 use chrono::{DateTime, Utc};
 use futures::lock::Mutex;
 use log::{error, info};
-use reqwest;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
@@ -63,12 +62,7 @@ async fn login<'a>(username: &str, password: &str) -> String {
         "password": password
     });
 
-    // Login to locast
-    let resp = reqwest::Client::new()
-        .post(LOGIN_URL)
-        .json(&credentials)
-        .headers(crate::utils::construct_headers())
-        .send()
+    let resp = crate::utils::post(LOGIN_URL, credentials, 10000)
         .await
         .unwrap();
 
@@ -90,8 +84,8 @@ struct UserInfo {
 // Validate the locast user and make sure the user has donated and the donation didn't expire.
 // If invalid, panic.
 async fn validate_user(token: &str) {
-    let response = crate::utils::get(USER_URL, Some(token)).await;
-    let text = response.text().await.unwrap();
+    let response = crate::utils::get(USER_URL, Some(token), 100).await;
+    let text = response.unwrap().text().await.unwrap();
     let user_info: Result<UserInfo, serde_json::Error> = serde_json::from_str(&text);
 
     let now = Utc::now().timestamp();

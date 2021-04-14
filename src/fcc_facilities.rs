@@ -110,8 +110,9 @@ async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, Strin
     let reader: Box<dyn Read>;
 
     // First get the locast_dmas from locast.org
-    let locast_dmas: Vec<LocastDMA> = crate::utils::get(DMA_URL, None)
+    let locast_dmas: Vec<LocastDMA> = crate::utils::get(DMA_URL, None, 100)
         .await
+        .unwrap()
         .json()
         .await
         .unwrap();
@@ -123,8 +124,9 @@ async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, Strin
         false
     } else {
         info!("Downloading FCC facilities");
-        let zipfile = crate::utils::get(FACILITIES_URL, None)
+        let zipfile = crate::utils::get(FACILITIES_URL, None, 100)
             .await
+            .unwrap()
             .bytes()
             .await
             .unwrap();

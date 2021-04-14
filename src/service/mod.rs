@@ -6,7 +6,8 @@ use self::{
     stationprovider::StationProvider,
 };
 use crate::{
-    config::Config, credentials::LocastCredentials, fcc_facilities::FCCFacilities, utils::get,
+    config::Config, credentials::LocastCredentials, errors::AppError,
+    fcc_facilities::FCCFacilities, utils::get,
 };
 use async_trait::async_trait;
 use chrono::Utc;
@@ -123,61 +124,38 @@ impl StationProvider for LocastServiceArc {
     }
 
     /// Get the stream URI for a specified station id
-    async fn station_stream_uri(&self, id: String) -> Mutex<String> {
+    async fn station_stream_uri(&self, id: String) -> Result<Mutex<String>, AppError> {
         // Construct the URL for the station
         let url = format!(
             "{}/{}/{}/{}",
             WATCH_URL, id, self.geo.latitude, self.geo.longitude
         );
 
-        let response: HashMap<String, Value> =
-            get(&url, Some(&self.credentials.token().await.to_owned()))
-                .await
-                .json()
-                .await
-                .unwrap();
+        let response = match get(&url, Some(&self.credentials.token().await.to_owned()), 100).await
+        {
+            Ok(r) => r,
+            Err(_) => return Err(AppError::NotFound),
+        };
 
-        let stream_url = response.get("streamUrl").unwrap().as_str().unwrap();
-        let m3u_data = get(stream_url, None).await.text().await.unwrap();
+        let value: HashMap<String, Value> = response.json().await.unwrap();
+
+        let stream_url = value.get("streamUrl").unwrap().as_str().unwrap();
+        let m3u_data = get(stream_url, None, 100)
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
         let master_playlist = hls_m3u8::MasterPlaylist::try_from(m3u_data.as_str());
 
-        // TODO: Make this nicer with a match
-        if master_playlist.is_err() {
-            Mutex::new(stream_url.to_owned())
-        } else {
-            let mut vs = master_playlist.unwrap().variant_streams;
-
-            // Sort the variant streams by bandwith (desc) and pick the top one
-            vs.sort_by(|a, b| {
-                let ea = match a {
-                    hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
-                        stream_data.bandwidth()
-                    }
-                    _ => 0,
-                };
-                let eb = match b {
-                    hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
-                        stream_data.bandwidth()
-                    }
-                    _ => 0,
-                };
-                ea.cmp(&eb)
-            });
-            let variant = vs.pop().unwrap();
-
-            let variant_url = match variant {
-                hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
-                _ => Cow::Borrowed(""),
-            };
-
-            // since variant URLs are relative, construct a full url we can use
-            let full_url = Url::parse(&stream_url)
-                .unwrap()
-                .join(&variant_url.to_string())
-                .unwrap()
-                .to_string();
-
-            Mutex::new(full_url.to_string())
+        // If there's a master playlist, parse it and get the highest quality stream, else we already have the
+        // correct URL.
+        match master_playlist {
+            Ok(mp) => Ok(Mutex::new(highest_quality_url(
+                mp.variant_streams,
+                stream_url,
+            ))),
+            Err(_) => Ok(Mutex::new(stream_url.to_owned())),
         }
     }
 
@@ -205,6 +183,39 @@ impl StationProvider for LocastServiceArc {
     fn services(&self) -> Vec<LocastServiceArc> {
         Vec::new()
     }
+}
+
+/// Sort the variant streams by bandwith (desc), pick the top one and return the full URL
+fn highest_quality_url(
+    mut variant_streams: Vec<hls_m3u8::tags::VariantStream>,
+    stream_url: &str,
+) -> String {
+    variant_streams.sort_by(|a, b| {
+        let ea = match a {
+            hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
+                stream_data.bandwidth()
+            }
+            _ => 0,
+        };
+        let eb = match b {
+            hls_m3u8::tags::VariantStream::ExtXStreamInf { stream_data, .. } => {
+                stream_data.bandwidth()
+            }
+            _ => 0,
+        };
+        ea.cmp(&eb)
+    });
+    let variant = variant_streams.pop().unwrap();
+    let variant_url = match variant {
+        hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
+        _ => Cow::Borrowed(""),
+    };
+    let full_url = Url::parse(&stream_url)
+        .unwrap()
+        .join(&variant_url.to_string())
+        .unwrap()
+        .to_string();
+    full_url
 }
 
 impl fmt::Display for LocastService {
@@ -314,8 +325,9 @@ async fn locast_stations(dma: &str, days: u8, token: &str) -> Vec<Station> {
         start_time,
         days * 24
     );
-    crate::utils::get(&uri, Some(token))
+    crate::utils::get(&uri, Some(token), 100)
         .await
+        .unwrap()
         .json::<Vec<Station>>()
         .await
         .unwrap()
@@ -346,8 +358,9 @@ async fn geo_from(zipcode: &Option<String>) -> Geo {
         None => String::from(IP_URL),
     };
 
-    let mut geo = crate::utils::get(&uri, None)
+    let mut geo = crate::utils::get(&uri, None, 100)
         .await
+        .unwrap()
         .json::<Geo>()
         .await
         .unwrap();

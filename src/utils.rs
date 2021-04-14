@@ -1,30 +1,66 @@
+use again::RetryPolicy;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::Tz;
+use clap::lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
-    Url,
+    Response, Url,
 };
+use serde_json::Value;
+use std::time::Duration;
 
 pub trait Or {
     /// Return `self` if it's not empty, otherwise `other`
     fn or<'a>(&'a self, other: &'a str) -> &str;
 }
 
+static BACKOFF_DELAY: u64 = 100;
+static MAX_DELAY: u64 = 5000;
+
+lazy_static! {
+    static ref POLICY: RetryPolicy = RetryPolicy::exponential(Duration::from_millis(BACKOFF_DELAY))
+        .with_max_delay(Duration::from_millis(MAX_DELAY))
+        .with_jitter(false);
+}
 /// HTTP Get (async). A token is optional, but should be used for authenticated requests
-pub async fn get(uri: &str, token: Option<&str>) -> reqwest::Response {
-    let mut client = reqwest::Client::new().get(uri).headers(construct_headers());
-    client = match token {
-        Some(t) => client.header("authorization", format!("Bearer {}", t)),
-        None => client,
-    };
+pub async fn get(
+    uri: &str,
+    token: Option<&str>,
+    max_retries: usize,
+) -> Result<Response, reqwest::Error> {
+    POLICY
+        .clone()
+        .with_max_retries(max_retries)
+        .retry(|| async {
+            let client = reqwest::Client::new();
+            let request_builder = client.get(uri).headers(construct_headers());
+            let request = match token {
+                Some(t) => request_builder.header("authorization", format!("Bearer {}", t)),
+                None => request_builder,
+            }
+            .build()
+            .unwrap();
+            Ok(client.execute(request).await?)
+        })
+        .await
+}
 
-    let resp = client.send().await.unwrap();
-    if !resp.status().is_success() {
-        panic!("Fetching {} failed: {:?}", uri, resp)
-    }
-
-    resp
+pub async fn post(uri: &str, data: Value, max_retries: usize) -> Result<Response, reqwest::Error> {
+    POLICY
+        .clone()
+        .with_max_retries(max_retries)
+        .retry(|| async {
+            let client = reqwest::Client::new();
+            let request = client
+                .post(uri)
+                .headers(construct_headers())
+                .json(&data)
+                .build()
+                .unwrap();
+            Ok(client.execute(request).await?)
+        })
+        .await
 }
 
 /// Construct additional headers for HTTP requests.

@@ -1,9 +1,10 @@
 use crate::{
     config::Config,
+    errors::AppError,
     service::{Geo, LocastServiceArc, Station, StationProvider, Stations},
 };
 use async_trait::async_trait;
-use futures::{lock::Mutex};
+use futures::lock::Mutex;
 use log::info;
 use std::{collections::HashMap, sync::Arc};
 /// Multiplex `LocastService` objects. `Multiplexer` implements the `StationProvider` trait
@@ -29,17 +30,19 @@ type MultiplexerArc = Arc<Multiplexer>;
 #[async_trait]
 impl StationProvider for Arc<Multiplexer> {
     /// Get the stream URL for a locast station id.
-    async fn station_stream_uri(&self, id: String) -> Mutex<String> {
+    async fn station_stream_uri(&self, id: String) -> Result<Mutex<String>, AppError> {
         // Make sure the station_id_service_map is loaded. Feels wrong to do it like this though.. Needs refactoring.
         self.stations().await;
 
-        let service = self
+        let service = match self
             .station_id_service_map
             .lock()
             .await
             .get(&id.to_string())
-            .unwrap()
-            .clone();
+        {
+            Some(s) => s.clone(),
+            None => return Err(AppError::NotFound),
+        };
 
         service.station_stream_uri(id).await
     }

@@ -29,6 +29,7 @@ systemd-units = { enable = false }
 [dependencies]
 actix-web = "4.0.0-beta.3"
 actix-rt = "2.2.0"
+again = "0.1.2"
 async-trait = "0.1.48"
 atty = "0.2"
 bytes = "1.0.1"
@@ -36,6 +37,7 @@ chrono = "0.4.19"
 chrono-tz = "0.5.3"
 clap = "3.0.0-beta.2"
 clap_conf = "0.1.5"
+derive_more = "0.99.13"
 dirs = "3.0.1"
 env_logger = "0.8.3"
 format_xml = "0.1"
@@ -48,7 +50,7 @@ log = "0.4.14"
 prettytable-rs = "^0.8"
 regex = "1"
 reqwest = { version = "0.11", features = ["blocking", "json", "native-tls-vendored"] }
-serde = {version = "1.0.123", features = ["derive"]}
+serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0"
 simple-error = "0.2.3"
 string-builder = "0.2.0"

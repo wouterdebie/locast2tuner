@@ -3,6 +3,7 @@ extern crate chrono;
 extern crate chrono_tz;
 mod config;
 mod credentials;
+mod errors;
 mod fcc_facilities;
 mod http;
 mod service;
