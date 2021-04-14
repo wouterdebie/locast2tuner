@@ -1,7 +1,7 @@
 use crate::config::Config;
 use chrono::{DateTime, Utc};
 use futures::lock::Mutex;
-use log::info;
+use log::{error, info};
 use reqwest;
 use serde::Deserialize;
 use serde_json::json;
@@ -90,15 +90,22 @@ struct UserInfo {
 // Validate the locast user and make sure the user has donated and the donation didn't expire.
 // If invalid, panic.
 async fn validate_user(token: &str) {
-    let user_info: UserInfo = crate::utils::get(USER_URL, Some(token))
-        .await
-        .json()
-        .await
-        .unwrap();
+    let response = crate::utils::get(USER_URL, Some(token)).await;
+    let text = response.text().await.unwrap();
+    let user_info: Result<UserInfo, serde_json::Error> = serde_json::from_str(&text);
+
     let now = Utc::now().timestamp();
-    if user_info.didDonate && now > user_info.donationExpire / 1000 {
-        panic!("Donation expired!")
-    } else if !user_info.didDonate {
-        panic!("User didn't donate!")
+    match user_info {
+        Err(e) => {
+            error!("Invalid response body: {}", text);
+            panic!("Error while validating user: {}", e)
+        }
+        Ok(u) => {
+            if now > u.donationExpire / 1000 {
+                panic!("Donation expired!")
+            } else if !u.didDonate {
+                panic!("User didn't donate!")
+            }
+        }
     }
 }

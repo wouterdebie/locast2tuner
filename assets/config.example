@@ -15,8 +15,15 @@ password = "very_secret_password"
 ## How many days of EPG data to fetch. The default is 8, which is the maximum of data locast.org provides
 # days = 8
 
-## Verbosity. 0 = Info, 1 = Info + HTTP request lgos, 2 = Debug, 3 = Trace
+## Verbosity. 0 = Info, 1 = Info + HTTP request lgos, 2 = Debug, 3 = Trace.
+## In error logs, you might see "run with `RUST_BACKTRACE=1` environment variable to display a backtrace".
+## Setting the verbosity to 2 or 3 will also include the backtrace.
 # verbose = 1
+
+## Enable RUST_BACKTRACE=1. In error logs, you might see "run with `RUST_BACKTRACE=1` environment variable
+## to display a backtrace". Instead of adding the environment variable, you can enable this behavior with
+## rust_backtrace.
+# rust_backtrace = false
 
 ## TCP port to bind to. The default is 6077. In case you override muliple zip codes, locast2tuner will
 ## bind to multiple ports, starting at the number specified below (or default 6077). Any additional

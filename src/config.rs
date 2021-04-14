@@ -25,6 +25,7 @@ pub struct Config {
     pub password: String,
     pub port: u16,
     pub remap: bool,
+    pub rust_backtrace: bool,
     pub ssdp: bool,
     pub tuner_count: u8,
     pub username: String,
@@ -54,6 +55,7 @@ impl Config {
                 (@arg password: -P --password +takes_value "Locast password")
                 (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
                 (@arg remap: -r --remap "Remap channels when multiplexed")
+                (@arg rust_backtrace: --rust_backtrace "Enable RUST_BACKTRACE=1")
                 (@arg ssdp: -s --ssdp "Enable SSDP")
                 (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 3)")
                 (@arg username: -U --username +takes_value "Locast username")
@@ -143,6 +145,8 @@ impl Config {
         conf.days = cfg.grab().arg("days").conf("days").t_def::<u8>(8);
 
         conf.remap = cfg.bool_flag("remap", Filter::Arg) || cfg.bool_flag("remap", Filter::Conf);
+        conf.rust_backtrace = cfg.bool_flag("rust_backtrace", Filter::Arg)
+            || cfg.bool_flag("rust_backtrace", Filter::Conf);
         // conf.logfile = cfg.grab().arg("logfile").conf("logfile").done();
 
         let default_cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));

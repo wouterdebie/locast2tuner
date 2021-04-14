@@ -29,15 +29,14 @@ async fn main() -> Result<(), SimpleError> {
     // Level 2 is debug and anything else defaults to trace.
     let log_level = match conf.verbose {
         0 | 1 => LevelFilter::Info,
-        2 => {
-            env::set_var("RUST_BACKTRACE", "1");
-            LevelFilter::Debug
-        }
-        _ => {
-            env::set_var("RUST_BACKTRACE", "1");
-            LevelFilter::Trace
-        }
+        2 => LevelFilter::Debug,
+        _ => LevelFilter::Trace,
     };
+
+    // Enable the RUST_BACKTRACE=1 env variable.
+    if conf.rust_backtrace {
+        env::set_var("RUST_BACKTRACE", "1");
+    }
 
     let force_timestamps = conf.clone().force_timestamps;
 
