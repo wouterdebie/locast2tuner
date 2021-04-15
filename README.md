@@ -32,6 +32,7 @@ This application provides an interface between locast.org and [Plex Media Server
          * [EPG](#epg)
       * [Multiplexing](#multiplexing)
       * [Remapping](#remapping)
+      * [Logging](#logging)
    * [Submitting bugs or feature requests](#submitting-bugs-or-feature-requests)
       * [Bugs](#bugs)
       * [Feature requests](#feature-requests)
