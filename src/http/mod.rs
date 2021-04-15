@@ -1,5 +1,4 @@
 mod templates;
-use crate::utils::base_url;
 use crate::{config::Config, service::stationprovider::StationProvider, utils::Or};
 use actix_web::middleware::Logger;
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
@@ -338,7 +337,7 @@ async fn epg<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder
 }
 
 async fn watch_m3u<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
-    let id = req.match_info().get("id").unwrap().to_string();
+    let id = req.match_info().get("id").unwrap();
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
     match service.station_stream_uri(id).await {
         Ok(url_mutex) => {
@@ -353,12 +352,12 @@ async fn watch_m3u<T: 'static + StationProvider>(req: HttpRequest) -> impl Respo
 }
 
 async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
-    let id = req.match_info().get("id").unwrap().to_string();
+    let id = req.match_info().get("id").unwrap();
     let service = &req.app_data::<web::Data<AppState<T>>>().unwrap().service;
     match service.station_stream_uri(id).await {
         Ok(url_mutex) => {
             let url = url_mutex.lock().await;
-            let stream = get_stream(&*url);
+            let stream = get_stream::<T>(&*url, req);
 
             HttpResponse::Ok()
                 .content_type("video/mpeg; codecs='avc1.4D401E'")
@@ -374,9 +373,15 @@ struct StreamState {
     stream_id: String,
     start_time: DateTime<Utc>,
     seconds_served: f32,
+    req: HttpRequest,
+    count_down: f32,
 }
 
-fn get_stream(url: &str) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
+static COUNT_DOWN: f32 = 9900.0; // 2:45h
+fn get_stream<T: 'static + StationProvider>(
+    url: &str,
+    req: HttpRequest,
+) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
     // Build helper struct
     let state = StreamState {
         segments: VecDeque::new(),
@@ -384,20 +389,46 @@ fn get_stream(url: &str) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
         stream_id: Uuid::new_v4().to_string()[0..7].to_string(),
         start_time: Utc::now(),
         seconds_served: 0.0,
+        count_down: COUNT_DOWN,
+        req,
     };
 
     stream::unfold(state, |mut state| async move {
+        // Refresh initial URL if we've been streaming for `COUNTDOWN seconds`
+        if state.count_down < 0.0 {
+            debug!("Stream {} -  URL expired: {}", state.stream_id, state.url);
+
+            // Get the service and stream id from the state
+            let id = state.req.match_info().get("id").unwrap();
+            let service = &state
+                .req
+                .app_data::<web::Data<AppState<T>>>()
+                .unwrap()
+                .service;
+
+            // Grab a new URL for this stream. If this fails, we end the stream.
+            match service.station_stream_uri(id).await {
+                Ok(url_mutex) => {
+                    let url = url_mutex.lock().await;
+                    debug!("Stream {} - New URL: {}", state.stream_id, &*url);
+                    state.url = (&*url).to_owned();
+                    state.count_down = COUNT_DOWN;
+                }
+                Err(_) => return None,
+            }
+        }
+
         let m3u_data = match crate::utils::get(&state.url, None, 5).await {
             Err(_) => return None,
             Ok(r) => r.text().await.unwrap(),
         };
 
         let media_playlist = hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()).unwrap();
-        let base_url = base_url(Url::parse(&state.url).unwrap());
 
         for media_segment in media_playlist.segments {
             let (_i, ms) = media_segment;
-            let absolute_uri = base_url.join(ms.uri()).unwrap();
+            let absolute_uri = Url::parse(&state.url).unwrap().join(ms.uri()).unwrap();
+
             let s = Segment {
                 url: absolute_uri.to_string(),
                 played: false,
@@ -449,6 +480,7 @@ fn get_stream(url: &str) -> impl Stream<Item = Result<bytes::Bytes, Error>> {
         );
 
         state.seconds_served += first.duration.as_secs_f32();
+        state.count_down -= first.duration.as_secs_f32();
         Some((Ok(actix_web::web::Bytes::from(chunk)), state))
     })
 }

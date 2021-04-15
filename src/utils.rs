@@ -5,7 +5,7 @@ use clap::lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
-    Response, Url,
+    Response,
 };
 use serde_json::Value;
 use std::time::Duration;
@@ -150,11 +150,4 @@ pub fn quality(properties: &str) -> String {
     } else {
         return "SD".to_string();
     }
-}
-
-/// Return the base URL for a URL with parameters
-pub fn base_url(mut url: Url) -> Url {
-    url.path_segments_mut().unwrap().clear();
-    url.set_query(None);
-    url
 }

@@ -124,7 +124,7 @@ impl StationProvider for LocastServiceArc {
     }
 
     /// Get the stream URI for a specified station id
-    async fn station_stream_uri(&self, id: String) -> Result<Mutex<String>, AppError> {
+    async fn station_stream_uri(&self, id: &str) -> Result<Mutex<String>, AppError> {
         // Construct the URL for the station
         let url = format!(
             "{}/{}/{}/{}",

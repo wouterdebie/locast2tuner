@@ -30,7 +30,7 @@ type MultiplexerArc = Arc<Multiplexer>;
 #[async_trait]
 impl StationProvider for Arc<Multiplexer> {
     /// Get the stream URL for a locast station id.
-    async fn station_stream_uri(&self, id: String) -> Result<Mutex<String>, AppError> {
+    async fn station_stream_uri(&self, id: &str) -> Result<Mutex<String>, AppError> {
         // Make sure the station_id_service_map is loaded. Feels wrong to do it like this though.. Needs refactoring.
         self.stations().await;
 
