@@ -18,7 +18,6 @@ pub struct Config {
     pub device_model: String,
     pub device_version: String,
     pub disable_station_cache: bool,
-    pub force_timestamps: bool,
     pub multiplex: bool,
     pub override_zipcodes: Option<Vec<String>>,
     pub password: String,
@@ -50,7 +49,6 @@ impl Config {
                 (@arg device_model: --device_model +takes_value "Device model (default: HDHR3-US)")
                 (@arg device_version: --device_version +takes_value "Device version (default: 20170612)")
                 (@arg disable_station_cache: --disable_station_cache "Disable stations cache")
-                (@arg force_timestamps: --force_timestamps "Force logging timestamps")
                 (@arg multiplex: -m --multiplex "Multiplex devices")
                 (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override zipcodes")
                 (@arg password: -P --password +takes_value "Locast password")
@@ -93,8 +91,6 @@ impl Config {
         conf.verbose = cfg.grab().arg("verbose").conf("verbose").t_def::<u8>(0);
         conf.multiplex =
             cfg.bool_flag("multiplex", Filter::Arg) || cfg.bool_flag("multiplex", Filter::Conf);
-        conf.force_timestamps = cfg.bool_flag("force_timestamps", Filter::Arg)
-            || cfg.bool_flag("force_timestamps", Filter::Conf);
 
         // First check if there's a comma-separated list from the command line
         conf.override_zipcodes = match cfg.grab().arg("override_zipcodes").done() {
