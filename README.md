@@ -147,7 +147,7 @@ override_zipcodes = ["85355", "90210"]
 See [assets/config.example](https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example) for more information and a description of each option.
 
 ## Displaying running config
-You can display your running config (which could be a combination of a config file and command line parameters) by opening the `/config` path (e.g. `http://127.0.0.1:6077/config.tml`). Normally the password is obfuscated, but if you add the query parameter `show_password` (e.g. `http://127.0.0.1:6077/config?showpass`), the password will become visible.
+You can display your running config (which could be a combination of a config file and command line parameters) by opening the `/config` path (e.g. `http://127.0.0.1:6077/config`). Normally the password is obfuscated, but if you add the query parameter `show_password` (e.g. `http://127.0.0.1:6077/config?showpass`), the password will become visible.
 
 ## Quickstart guides for Plex and Emby
 
