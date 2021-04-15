@@ -1,22 +1,20 @@
 #![recursion_limit = "256"]
-extern crate chrono;
-extern crate chrono_tz;
+#[macro_use]
+extern crate log;
 mod config;
 mod credentials;
 mod errors;
 mod fcc_facilities;
 mod http;
+mod logging;
 mod service;
 mod utils;
-use atty::Stream;
-use chrono::Local;
-use env_logger::Builder;
 use itertools::Itertools;
-use log::{info, warn, LevelFilter};
 use service::multiplexer::Multiplexer;
 use simple_error::SimpleError;
+use std::env;
 use std::sync::Arc;
-use std::{env, io::Write};
+
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 #[actix_web::main]
 async fn main() -> Result<(), SimpleError> {
@@ -26,40 +24,23 @@ async fn main() -> Result<(), SimpleError> {
         Err(e) => panic!("{}", e),
     };
 
-    // Log level 0 and 1 give info logging, but loglevel 1 adds HTTP logging.
-    // Level 2 is debug and anything else defaults to trace.
-    let log_level = match conf.verbose {
-        0 | 1 => LevelFilter::Info,
-        2 => LevelFilter::Debug,
-        _ => LevelFilter::Trace,
-    };
-
     // Enable the RUST_BACKTRACE=1 env variable.
     if conf.rust_backtrace {
         env::set_var("RUST_BACKTRACE", "1");
     }
 
-    let force_timestamps = conf.clone().force_timestamps;
+    // Log level 0 and 1 give info logging, but loglevel 1 adds HTTP logging.
+    // Level 2 is debug and anything else defaults to trace.
+    let log_level = match conf.verbose {
+        0 | 1 => slog::Level::Info,
+        2 => slog::Level::Debug,
+        _ => slog::Level::Trace,
+    };
 
-    // Create the proper log format, but only prefix the date and level if we
-    // have a tty, since we don't want to log date and level twice when using
-    // syslog or something.
-    Builder::new()
-        .format(move |buf, record| {
-            if atty::is(Stream::Stdout) || force_timestamps {
-                writeln!(
-                    buf,
-                    "{} [{}] - {}",
-                    Local::now().format("%Y-%m-%dT%H:%M:%S"),
-                    record.level(),
-                    record.args()
-                )
-            } else {
-                writeln!(buf, "[{}] - {}", record.level(), record.args())
-            }
-        })
-        .filter(None, log_level)
-        .init();
+    // Setup logging
+    let logger = crate::logging::logger(log_level, &conf);
+    let _scope_guard = slog_scope::set_global_logger(logger);
+    let _log_guard = slog_stdlog::init().unwrap();
 
     info!(
         "locast2tuner {} on {} {} starting..",
@@ -97,7 +78,7 @@ async fn main() -> Result<(), SimpleError> {
     // Create a multiplexer if necessary
     if conf.multiplex {
         if conf.remap {
-            warn!("Channels will be remapped!")
+            warn!("Channels will be remapped!");
         }
         let mp = vec![Multiplexer::new(services, conf.clone())];
         match http::start(mp, conf.clone()).await {

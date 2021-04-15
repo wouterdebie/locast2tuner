@@ -73,3 +73,12 @@ password = "very_secret_password"
 
 ## Device version that is reported to Plex or Emby. Defaults to "20170612"
 # device_version = "20170612"
+
+## Don't log anything to the terminal
+# quiet = false
+
+## Log through syslogd
+# syslog = false
+
+## Log to a specific file. By default locast2tuner will not log to a file.
+# logfile = "locast2tuner.log"

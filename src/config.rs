@@ -9,8 +9,7 @@ use std::path::PathBuf;
 use uuid::Uuid;
 #[derive(Default, Debug, Serialize, Clone)]
 pub struct Config {
-    // pub logfile: Option<String>,
-    // pub override_location: Option<String>,
+    pub logfile: Option<String>,
     pub bind_address: String,
     pub cache_directory: PathBuf,
     pub cache_timeout: u64,
@@ -24,9 +23,11 @@ pub struct Config {
     pub override_zipcodes: Option<Vec<String>>,
     pub password: String,
     pub port: u16,
+    pub quiet: bool,
     pub remap: bool,
     pub rust_backtrace: bool,
     pub ssdp: bool,
+    pub syslog: bool,
     pub tuner_count: u8,
     pub username: String,
     #[serde(skip_serializing)]
@@ -57,10 +58,12 @@ impl Config {
                 (@arg remap: -r --remap "Remap channels when multiplexed")
                 (@arg rust_backtrace: --rust_backtrace "Enable RUST_BACKTRACE=1")
                 (@arg ssdp: -s --ssdp "Enable SSDP")
+                (@arg syslog: --syslog "Log to syslogd")
+                (@arg quiet: --quiet "Don't log to terminal")
                 (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 3)")
                 (@arg username: -U --username +takes_value "Locast username")
                 (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0)")
-                // (@arg logfile: -l --logfile +takes_value "Log file location")
+                (@arg logfile: -l --logfile +takes_value "Log file location")
 
         )
         .get_matches();
@@ -136,6 +139,9 @@ impl Config {
         conf.disable_station_cache = cfg.bool_flag("disable_station_cache", Filter::Arg)
             || cfg.bool_flag("disable_station_cache", Filter::Conf);
 
+        conf.syslog = cfg.bool_flag("syslog", Filter::Arg) || cfg.bool_flag("syslog", Filter::Conf);
+        conf.quiet = cfg.bool_flag("quiet", Filter::Arg) || cfg.bool_flag("quiet", Filter::Conf);
+
         conf.cache_timeout = cfg
             .grab()
             .arg("cache_timeout")
@@ -147,7 +153,8 @@ impl Config {
         conf.remap = cfg.bool_flag("remap", Filter::Arg) || cfg.bool_flag("remap", Filter::Conf);
         conf.rust_backtrace = cfg.bool_flag("rust_backtrace", Filter::Arg)
             || cfg.bool_flag("rust_backtrace", Filter::Conf);
-        // conf.logfile = cfg.grab().arg("logfile").conf("logfile").done();
+
+        conf.logfile = cfg.grab().arg("logfile").conf("logfile").done();
 
         let default_cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
 

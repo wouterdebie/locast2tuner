@@ -187,6 +187,13 @@ Note: This type of multiplexing makes sense in Emby, since you can add a single 
 ## Remapping
 In case you override multiple zip codes, Emby and Plex will sort channels by channel number, which means channels from different locations might be intermingled. In order circumvent this, you can use `--remap`. This causes locast2tuner to rewrite the channel number based on the amount of instances there are. Locast will remap a "channel_number" to "channel_number + 100 * instance_number", where the instance_number starts at 0. E.g. you override 3 zip codes, then the channels from the first location will be untouched (since 100*0 == 0 the stations for the second location will start at 100 (e.g. 2.1 CBS becomes 102.1 CBS) and the stations for the third location will start at 200 (e.g. 13.2 WWFF becomes 213.2 WWFF).
 
+## Logging
+`locast2tuner` has a few options for logging: directly to the terminal (default), logging to a file and logging through syslog. You can combine the way you want to log by specifying multiple options:
+
+- `--quiet`: disable logging to the terminal
+- `--syslog`: log through syslog
+- `--logfile <filename>`: log to a file separately
+
 # Submitting bugs or feature requests
 ## Bugs
 When you encounter a bug, please use [Github Issues](https://github.com/wouterdebie/locast2tuner/issues):
