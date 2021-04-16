@@ -1261,7 +1261,6 @@ dependencies = [
  "actix-web",
  "again",
  "async-trait",
- "atty",
  "bytes",
  "chrono",
  "chrono-tz",
