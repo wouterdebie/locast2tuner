@@ -1,7 +1,7 @@
 use crate::config;
 use slog::*;
 use slog_async::Async;
-use slog_syslog::{Facility, SyslogBuilder};
+use slog_syslog::Facility;
 use slog_term::{FullFormat, PlainDecorator, TermDecorator};
 use std::fs::OpenOptions;
 use std::sync::Arc;
