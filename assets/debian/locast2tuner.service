@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 User=locast2tuner
 Group=locast2tuner
-ExecStart=/usr/bin/locast2tuner -c /etc/locast2tuner/config --cache_dir /var/lib/locast2tuner
+ExecStart=/usr/bin/locast2tuner -c /etc/locast2tuner/config --cache_dir /var/lib/locast2tuner --logfile /var/log/locast2tuner/locast2tuner.log
 
 [Install]
 WantedBy=multi-user.target

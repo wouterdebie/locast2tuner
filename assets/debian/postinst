@@ -1,6 +1,7 @@
 #!/bin/sh
 
 L2T_HOME_DIR="/var/lib/locast2tuner"
+L2T_LOG_DIR="/var/lib/locast2tuner"
 L2T_USER="locast2tuner"
 L2T_GROUP="$L2T_USER"
 L2T_SHELL="/bin/false"
@@ -13,6 +14,8 @@ case "$1" in
         adduser --quiet --system --group --home "$L2T_HOME_DIR" \
                 --disabled-password --disabled-login \
                 --shell "$L2T_SHELL" "$L2T_USER"
+        mkdir -p $L2T_LOG_DIR
+        chown $L2T_USER:$L2T_GROUP $L2T_LOG_DIR
     ;;
     abort-upgrade|abort-remove|abort-deconfigure)
     ;;

@@ -44,20 +44,7 @@ pub fn logger(log_level: Level, conf: &Arc<config::Config>) -> Logger {
     };
 
     let syslog_drain = match &conf.syslog {
-        true => Some(
-            match SyslogBuilder::new()
-                .facility(Facility::LOG_USER)
-                .level(log_level)
-                .unix("/var/run/syslog")
-                .start()
-            {
-                Ok(d) => d,
-                Err(e) => {
-                    panic!("Failed to start syslog on `/var/run/syslog`. Error {:?}", e)
-                }
-            }
-            .fuse(),
-        ),
+        true => Some(slog_syslog::unix_3164(Facility::LOG_USER).unwrap().fuse()),
         false => None,
     };
 
