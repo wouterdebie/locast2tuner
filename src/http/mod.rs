@@ -419,15 +419,32 @@ fn get_stream<T: 'static + StationProvider>(
         }
 
         let m3u_data = match crate::utils::get(&state.url, None, 5).await {
-            Err(_) => return None,
+            Err(e) => {
+                warn!("Unable to get m3u data, stopping stream.. {}", e);
+                return None;
+            }
             Ok(r) => r.text().await.unwrap(),
         };
 
-        let media_playlist = hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()).unwrap();
+        let media_playlist = match hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()) {
+            Ok(p) => p,
+            Err(e) => {
+                warn!("Unable to fetch media playlist, stopping stream.. {}", e);
+                return None;
+            }
+        };
 
         for media_segment in media_playlist.segments {
             let (_i, ms) = media_segment;
-            let absolute_uri = Url::parse(&state.url).unwrap().join(ms.uri()).unwrap();
+            let absolute_uri = match Url::parse(&state.url) {
+                Ok(u) => u,
+                Err(e) => {
+                    warn!("Unable to parse url! {}", e);
+                    return None;
+                }
+            }
+            .join(ms.uri())
+            .unwrap();
 
             let s = Segment {
                 url: absolute_uri.to_string(),
@@ -446,7 +463,13 @@ fn get_stream<T: 'static + StationProvider>(
         }
 
         // Find first unplayed segment
-        let first = state.segments.iter_mut().find(|s| !s.played).unwrap();
+        let first = match state.segments.iter_mut().find(|s| !s.played) {
+            Some(s) => s,
+            None => {
+                warn!("No first segment found. Stopping stream..");
+                return None;
+            }
+        };
 
         let runtime = Utc::now() - state.start_time;
         let target_diff = 0.5 * first.duration.as_secs_f32();
@@ -469,7 +492,10 @@ fn get_stream<T: 'static + StationProvider>(
         }
 
         let chunk = match crate::utils::get(&first.url, None, 10).await {
-            Err(_) => return None,
+            Err(e) => {
+                warn!("No bytes fetched.. Stopping stream.. {}", e);
+                return None;
+            }
             Ok(r) => r.bytes().await.unwrap().to_vec(),
         };
 
