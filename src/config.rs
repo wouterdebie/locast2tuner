@@ -10,6 +10,7 @@ use uuid::Uuid;
 #[derive(Default, Debug, Serialize, Clone)]
 pub struct Config {
     pub logfile: Option<String>,
+    pub remap_file: Option<String>,
     pub bind_address: String,
     pub cache_directory: PathBuf,
     pub cache_timeout: u64,
@@ -25,7 +26,6 @@ pub struct Config {
     pub quiet: bool,
     pub remap: bool,
     pub rust_backtrace: bool,
-
     pub syslog: bool,
     pub tuner_count: u8,
     pub username: String,
@@ -61,6 +61,7 @@ impl Config {
                 (@arg username: -U --username +takes_value "Locast username")
                 (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0)")
                 (@arg logfile: -l --logfile +takes_value "Log file location")
+                (@arg remap_file: --remap_file +takes_value "Remap file location")
 
         )
         .get_matches();
@@ -150,6 +151,7 @@ impl Config {
             || cfg.bool_flag("rust_backtrace", Filter::Conf);
 
         conf.logfile = cfg.grab().arg("logfile").conf("logfile").done();
+        conf.remap_file = cfg.grab().arg("remap_file").conf("remap_file").done();
 
         let default_cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
 

@@ -1,5 +1,9 @@
 mod templates;
-use crate::{config::Config, service::stationprovider::StationProvider, utils::Or};
+use crate::{
+    config::Config,
+    service::{station::ChannelRemapEntry, stationprovider::StationProvider},
+    utils::Or,
+};
 use actix_web::middleware::Logger;
 use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::{middleware::Compat, Error};
@@ -10,7 +14,7 @@ use log::info;
 use prettytable::{cell, format, row, Table};
 use reqwest::{header::LOCATION, Url};
 use serde::Serialize;
-use std::convert::TryFrom;
+use std::{collections::HashMap, convert::TryFrom};
 use std::{collections::VecDeque, sync::Arc};
 use string_builder::Builder;
 use uuid::Uuid;
@@ -70,6 +74,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
                     .route("/lineup.json", web::get().to(lineup_json::<T>))
                     .route("/lineup.post", web::post().to(lineup_post))
                     .route("/lineup.xml", web::get().to(lineup_xml::<T>))
+                    .route("/map.json", web::get().to(map_json::<T>))
                     .route("/tuner.m3u", web::get().to(tuner_m3u::<T>))
                     .service(web::resource("/watch/{id}.m3u").route(web::get().to(watch_m3u::<T>)))
                     .service(web::resource("/watch/{id}").route(web::get().to(watch::<T>)))
@@ -243,14 +248,12 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
     let stations_mutex = data.service.stations();
     let stations = stations_mutex.await;
 
-    for station in stations.lock().await.iter() {
+    for station in stations.lock().await.iter().filter(|s| s.active) {
         let call_sign_or_name = &station.callSign.or(&station.name).to_string();
-        let call_sign = crate::utils::name_only(
-            &station
-                .callSign_remapped
-                .as_ref()
-                .unwrap_or(call_sign_or_name),
-        );
+        let call_sign = station
+            .callSign_remapped
+            .as_ref()
+            .unwrap_or(call_sign_or_name);
         let city = station.city.as_ref().unwrap();
         let logo = &station
             .logoUrl
@@ -261,7 +264,7 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
             .channel_remapped
             .as_ref()
             .unwrap_or(station.channel.as_ref().unwrap());
-        let groups = if NETWORKS.contains(&call_sign) {
+        let groups = if NETWORKS.contains(&call_sign.as_str()) {
             format!("{};Network", &city,)
         } else {
             city.to_owned()
@@ -303,6 +306,7 @@ async fn lineup_json<T: 'static + StationProvider>(req: HttpRequest) -> HttpResp
         .lock()
         .await
         .iter()
+        .filter(|s| s.active)
         .map(|station| {
             let url = format!("http://{}/watch/{}", &host, &station.id);
             LineupJson {
@@ -319,6 +323,43 @@ async fn lineup_json<T: 'static + StationProvider>(req: HttpRequest) -> HttpResp
 
     HttpResponse::Ok().json(lineup)
 }
+
+async fn map_json<T: 'static + StationProvider>(req: HttpRequest) -> HttpResponse {
+    let data = &req.app_data::<web::Data<AppState<T>>>().unwrap();
+    let stations_mutex = data.service.stations();
+    let stations = stations_mutex.await;
+
+    let lineup: HashMap<String, ChannelRemapEntry> = stations
+        .lock()
+        .await
+        .iter()
+        .map(|station| {
+            (
+                format!("channel.{}", station.id).to_string(),
+                ChannelRemapEntry {
+                    original_call_sign: station.callSign.clone(),
+                    remap_call_sign: station
+                        .callSign_remapped
+                        .clone()
+                        .or(Some(station.callSign.clone()))
+                        .unwrap(),
+                    original_channel: station.channel.clone().unwrap(),
+                    remap_channel: station
+                        .channel_remapped
+                        .clone()
+                        .or(Some(station.channel.clone().unwrap()))
+                        .unwrap(),
+                    city: station.city.clone().unwrap(),
+                    active: station.active,
+                    remapped: station.remapped.or(Some(false)).unwrap(),
+                },
+            )
+        })
+        .collect();
+
+    let j = serde_json::to_string(&lineup).unwrap();
+    HttpResponse::Ok().content_type("text/json").body(j)
+}
 async fn show_config<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
     let mut config = (*req.app_data::<web::Data<AppState<T>>>().unwrap().config).clone();
 
@@ -330,6 +371,8 @@ async fn show_config<T: 'static + StationProvider>(req: HttpRequest) -> impl Res
     HttpResponse::Ok().content_type("text/plain").body(result)
 }
 
+/// EPG in json format. This is pretty much the whole Vec<Station> we have built in memory.
+/// Note that no additional filter is applied.
 async fn epg<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
     let stations_mutex = data.service.stations();
     let stations = &*stations_mutex.await;

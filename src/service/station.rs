@@ -23,6 +23,7 @@ pub struct Station {
     pub transcodeId: i64,
     pub channel_remapped: Option<String>,
     pub callSign_remapped: Option<String>,
+    pub remapped: Option<bool>,
 }
 pub type Stations = Arc<Mutex<Vec<Station>>>;
 
@@ -76,4 +77,15 @@ pub struct Listing {
     pub topCast: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub videoProperties: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ChannelRemapEntry {
+    pub original_call_sign: String,
+    pub remap_call_sign: String,
+    pub original_channel: String,
+    pub remap_channel: String,
+    pub city: String,
+    pub active: bool,
+    pub remapped: bool,
 }

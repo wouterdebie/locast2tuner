@@ -1,3 +1,4 @@
+use super::station::ChannelRemapEntry;
 use crate::{
     config::Config,
     errors::AppError,
@@ -6,22 +7,32 @@ use crate::{
 use async_trait::async_trait;
 use futures::lock::Mutex;
 use log::info;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fs::File, sync::Arc};
 /// Multiplex `LocastService` objects. `Multiplexer` implements the `StationProvider` trait
 /// and can act as a LocastService.
 pub struct Multiplexer {
     services: Vec<LocastServiceArc>,
     config: Arc<Config>,
     station_id_service_map: Mutex<HashMap<String, LocastServiceArc>>,
+    channel_remap: Option<HashMap<String, ChannelRemapEntry>>,
 }
 
 impl Multiplexer {
     /// Create a new `Multiplexer` with a vector of `LocastServiceArcs` and a `Config`
     pub fn new(services: Vec<LocastServiceArc>, config: Arc<Config>) -> MultiplexerArc {
+        let channel_remap = match &config.remap_file {
+            Some(f) => {
+                let file = File::open(f).unwrap();
+                let c: HashMap<String, ChannelRemapEntry> = serde_json::from_reader(file).unwrap();
+                Some(c)
+            }
+            None => None,
+        };
         Arc::new(Multiplexer {
             services,
             config,
             station_id_service_map: Mutex::new(HashMap::new()),
+            channel_remap,
         })
     }
 }
@@ -67,11 +78,28 @@ impl StationProvider for Arc<Multiplexer> {
                         panic!("Could not remap {}", channel);
                     };
 
-                    // Convoluted.. let's fix this sometime..
-                    let new_call_sign = station
-                        .callSign
-                        .replace(channel, &station.channel_remapped.as_ref().unwrap());
-                    station.callSign_remapped = Some(new_call_sign);
+                    station.callSign_remapped = Some(station.callSign.clone());
+                    station.remapped = Some(true)
+                } else if self.channel_remap.is_some() {
+                    // Look if the channel is is remapped in the channel map
+                    let channel_remap = self.channel_remap.as_ref().unwrap();
+                    let key = format!("channel.{}", station.id);
+                    match channel_remap.get(&key) {
+                        Some(r) if r.remapped => {
+                            station.channel_remapped = Some(r.remap_channel.clone());
+                            station.callSign_remapped = Some(r.remap_call_sign.clone());
+                            station.active = r.active;
+                            station.remapped = Some(r.remapped);
+                            debug!(
+                                "Remap -  {} {} => {} {}",
+                                station.channel.clone().unwrap(),
+                                station.callSign,
+                                station.channel_remapped.clone().unwrap(),
+                                station.callSign_remapped.clone().unwrap()
+                            );
+                        }
+                        _ => {}
+                    }
                 }
                 self.station_id_service_map
                     .lock()
