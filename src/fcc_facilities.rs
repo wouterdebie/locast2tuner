@@ -1,5 +1,4 @@
 use crate::config::Config;
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::lock::Mutex;
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -9,6 +8,8 @@ use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc, time::SystemTime, usize};
 use std::{fs::File, io::prelude::*};
 use std::{io::BufReader, path::PathBuf};
+use tokio::task;
+use tokio::time::{sleep, Duration};
 
 // Indexes of data that matters in FCC CSV file
 static LIC_EXPIRATION_DATE: usize = 15;
@@ -22,7 +23,7 @@ static TV_VIRTUAL_CHANNEL: usize = 28;
 static SERVICE_LIST: &'static [&str] = &["DT", "TX", "TV", "TB", "LD", "DC"];
 
 static MAX_FILE_AGE: u64 = 24 * 60 * 60; // 24 hours
-                                         // static CHECK_INTERVAL: u64 = 3600; // 1 hour
+static CHECK_INTERVAL: u64 = 60 * 60; // 1 hour
 
 static FACILITIES_URL: &str =
     "https://transition.fcc.gov/ftp/Bureaus/MB/Databases/cdbs/facility.zip";
@@ -48,7 +49,7 @@ impl FCCFacilities {
         ));
 
         // Start a background thread that will update the facilities periodically
-        // start_updater_thread(&facilities_map, &config);
+        start_updater_thread(&facilities_map, &config);
 
         // Build and return
         FCCFacilities {
@@ -74,25 +75,24 @@ impl FCCFacilities {
     }
 }
 
-// TODO: get the updater thread working again..
 /// Start an thread that will update the facilities map regularly and store them
-// // /// in the cache directory
-// fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
-//     let facilities_map = facilities_map.clone();
-//     let config = config.clone();
+/// in the cache directory
+fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
+    let facilities_map = facilities_map.clone();
+    let config = config.clone();
 
-//     task::spawn(async move {
-//         loop {
-//             sleep(Duration::from_secs(CHECK_INTERVAL)).await;
+    task::spawn(async move {
+        loop {
+            sleep(Duration::from_secs(CHECK_INTERVAL)).await;
 
-//             info!("Reloading FCC facilities..");
-//             let cache_file = config.cache_directory.join("facilities");
-//             let new_facilties = load(&cache_file).await;
-//             let mut facilities = facilities_map.lock().await;
-//             *facilities = new_facilties;
-//         }
-//     });
-// }
+            info!("Reloading FCC facilities..");
+            let cache_file = config.cache_directory.join("facilities");
+            let new_facilties = load(&cache_file).await;
+            let mut facilities = facilities_map.lock().await;
+            *facilities = new_facilties;
+        }
+    });
+}
 
 /// Check if a path has expired, based on `MAX_FILE_AGE`
 fn path_expired(path: &PathBuf) -> bool {
@@ -106,9 +106,6 @@ fn path_expired(path: &PathBuf) -> bool {
 
 /// Load facilities from `cache_file`
 async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
-    let mut zip: zip::ZipArchive<std::io::Cursor<Bytes>>;
-    let reader: Box<dyn Read>;
-
     // First get the locast_dmas from locast.org
     let locast_dmas: Vec<LocastDMA> = crate::utils::get(DMA_URL, None, 100)
         .await
@@ -117,10 +114,13 @@ async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, Strin
         .await
         .unwrap();
 
+    let lines: Vec<Result<String, std::io::Error>>;
     // Using cached facilities if possible.
     let downloaded = if cache_file.exists() && !path_expired(&cache_file) {
         info!("Using cached FCC facilities at {}", cache_file.display());
-        reader = Box::new(File::open(cache_file).unwrap());
+        lines = BufReader::new(File::open(cache_file).unwrap())
+            .lines()
+            .collect::<Vec<Result<String, std::io::Error>>>();
         false
     } else {
         info!("Downloading FCC facilities");
@@ -130,15 +130,21 @@ async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, Strin
             .bytes()
             .await
             .unwrap();
-        zip = zip::ZipArchive::new(std::io::Cursor::new(zipfile)).unwrap();
-        reader = Box::new(zip.by_name("facility.dat").unwrap());
+
+        lines = BufReader::new(
+            zip::ZipArchive::new(std::io::Cursor::new(zipfile))
+                .unwrap()
+                .by_name("facility.dat")
+                .unwrap(),
+        )
+        .lines()
+        .collect::<Vec<Result<String, std::io::Error>>>();
         true
     };
 
-    let mut facilities_map: HashMap<(i64, String), (String, String)> = HashMap::new();
     let mut loaded_lines: Vec<String> = Vec::new();
-
-    for line in BufReader::new(reader).lines().map(|l| l.unwrap()) {
+    let mut facilities_map: HashMap<(i64, String), (String, String)> = HashMap::new();
+    for line in lines.into_iter().map(|l| l.unwrap()) {
         let parts: Vec<&str> = line.split("|").collect();
 
         let lic_expiration_date = parts[LIC_EXPIRATION_DATE];
