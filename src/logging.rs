@@ -1,7 +1,6 @@
 use crate::config;
 use slog::*;
 use slog_async::Async;
-use slog_syslog::Facility;
 use slog_term::{FullFormat, PlainDecorator, TermDecorator};
 use std::fs::OpenOptions;
 use std::sync::Arc;
@@ -43,8 +42,19 @@ pub fn logger(log_level: Level, conf: &Arc<config::Config>) -> Logger {
         None => None,
     };
 
+    #[cfg(target_family = "unix")]
     let syslog_drain = match &conf.syslog {
-        true => Some(slog_syslog::unix_3164(Facility::LOG_USER).unwrap().fuse()),
+        true => Some(
+            slog_syslog::unix_3164(slog_syslog::Facility::LOG_USER)
+                .unwrap()
+                .fuse(),
+        ),
+        false => None,
+    };
+
+    #[cfg(target_family = "windows")]
+    let syslog_drain = match &conf.syslog {
+        true => Some(Discard),
         false => None,
     };
 

@@ -55,7 +55,6 @@ slog = "2.7.0"
 slog-async = "2.6.0"
 slog-scope = "4.4.0"
 slog-stdlog = "4.1.0"
-slog-syslog = "0.12.0"
 slog-term = "2.8.0"
 string-builder = "0.2.0"
 sys-info = "0.8.0"
@@ -66,6 +65,9 @@ tz-search = "0.1.1"
 url = "2.2.1"
 uuid = { version = "0.8", features = ["serde", "v4", "v5"] }
 zip = "0.5.10"
+
+[target.'cfg(unix)'.dependencies]
+slog-syslog = "0.12.0"
 
 [build-dependencies]
 rustc_version   = "0.3.3"
