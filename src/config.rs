@@ -25,7 +25,7 @@ pub struct Config {
     pub quiet: bool,
     pub remap: bool,
     pub rust_backtrace: bool,
-    pub ssdp: bool,
+
     pub syslog: bool,
     pub tuner_count: u8,
     pub username: String,
@@ -55,7 +55,6 @@ impl Config {
                 (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
                 (@arg remap: -r --remap "Remap channels when multiplexed")
                 (@arg rust_backtrace: --rust_backtrace "Enable RUST_BACKTRACE=1")
-                (@arg ssdp: -s --ssdp "Enable SSDP")
                 (@arg syslog: --syslog "Log to syslogd")
                 (@arg quiet: --quiet "Don't log to terminal")
                 (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 3)")

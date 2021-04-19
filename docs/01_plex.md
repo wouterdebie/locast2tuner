@@ -2,7 +2,7 @@
 
 [Plex Media Server](https://www.plex.tv/) (PMS) only supports [HDHomerun](https://www.silicondust.com/) mode which is supported by `locast2tuner`.  This guide will walk you through adding your working `locast2tuner` tuner to PMS.
 
-* In PMS, click the tools icon at the top right to go to settings. 
+* In PMS, click the tools icon at the top right to go to settings.
 
 ![settings icon](images/01_plex-01.png)
 
@@ -10,13 +10,13 @@
 
 ![live tv](images/01_plex-02.png)
 
-* You should be presented with this screen. If you have multiple servers in your PMS account, make sure that you focused on the local one. The name of the server in the below screenshot is "roddie." 
+* You should be presented with this screen. If you have multiple servers in your PMS account, make sure that you focused on the local one. The name of the server in the below screenshot is "roddie."
 
 * Click "Set up Plex DVR"
 
 ![setup screen](images/01_plex-03.png)
 
-* We have not yet enabled SSDP discovery in `locast2tuner`, so we will have to enter the `locast2tuner` address manually.  Click the link shown in the screenshot to do this.
+* Enter the `locast2tuner` address manually. Click the link shown in the screenshot to do this.
 
 ![enter manually](images/01_plex-04.png)
 

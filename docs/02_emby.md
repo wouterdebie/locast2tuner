@@ -2,7 +2,7 @@
 
 [Emby](https://emby.media/) supports both [HDHomerun](https://www.silicondust.com/) and m3u tuner modes, both of which are supported by `locast2tuner`.  This guide will walk you through adding your working `locast2tuner` tuner to Emby in m3u mode.
 
-* In Emby, click the gear icon at the top right to go to settings. 
+* In Emby, click the gear icon at the top right to go to settings.
 
 ![gear icon](images/02_emby-01.png)
 
@@ -14,7 +14,7 @@
 
 ![setup screen](images/02_emby-03.png)
 
-* We have not yet enabled SSDP discovery in `locast2tuner`, so we will have to enter the `locast2tuner` address manually.  Click the "Type" dropdown box and select "M3U Tuner."
+* Enter the `locast2tuner` address manually.  Click the "Type" dropdown box and select "M3U Tuner."
 
 ![enter manually](images/02_emby-04.png)
 

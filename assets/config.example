@@ -61,10 +61,6 @@ password = "very_secret_password"
 ## for the third location will start at 200 (e.g. 13.2 WWFF becomes 213.2 WWFF).
 # remap = false
 
-## Start the SSDP server in order for Plex or Emby to auto discover the tuner. Currently, the SSDP
-## server isn't working.
-# ssdp = false
-
 ## Device firmware that is reported to Plex or Emby. Defaults to "homerun3_atsc"
 # device_firmware = "homerun3_atsc"
 
