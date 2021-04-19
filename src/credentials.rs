@@ -78,7 +78,7 @@ async fn login<'a>(username: &str, password: &str) -> String {
 #[derive(Deserialize, Debug)]
 struct UserInfo {
     didDonate: bool,
-    donationExpire: i64,
+    donationExpire: Option<i64>,
 }
 
 // Validate the locast user and make sure the user has donated and the donation didn't expire.
@@ -95,10 +95,10 @@ async fn validate_user(token: &str) {
             panic!("Error while validating user: {}", e)
         }
         Ok(u) => {
-            if now > u.donationExpire / 1000 {
-                panic!("Donation expired!")
-            } else if !u.didDonate {
-                panic!("User didn't donate!")
+            if !u.didDonate {
+                panic!("User didn't donate! Make sure you have an active donation at locast.org!")
+            } else if now > u.donationExpire.unwrap() / 1000 {
+                panic!("Donation expired! Make sure you have an active donation at locast.org!")
             }
         }
     }
