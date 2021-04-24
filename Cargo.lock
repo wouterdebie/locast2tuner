@@ -1274,6 +1274,7 @@ dependencies = [
  "hls_m3u8",
  "htmlescape",
  "itertools",
+ "lazy_static",
  "log 0.4.14",
  "prettytable-rs",
  "regex",

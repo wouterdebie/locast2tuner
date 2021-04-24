@@ -1,7 +1,7 @@
 use again::RetryPolicy;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::Tz;
-use clap::lazy_static::lazy_static;
+use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
