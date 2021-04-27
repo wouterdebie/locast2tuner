@@ -47,7 +47,7 @@ password = "very_secret_password"
 ## Where to save station data
 # cache_dir = "/var/lib/locast2tuner" # default: $HOME/.locast2tuner
 
-## Normally, when you override muliple zip codes, locast2tuner starts multiple instances (see "bind_address"),
+## Normally, when you override multiple zip codes, locast2tuner starts multiple instances (see "bind_address"),
 ## but with "multiplex = true", stations from multiple locations will be available through a single instance.
 # multiplex = false
 
@@ -59,7 +59,20 @@ password = "very_secret_password"
 ## E.g. you override 3 zip codes, then the channels from the first location will be untouched (since 100*0 == 0),
 ## the stations for the second location will start at 100 (e.g. 2.1 CBS becomes 102.1 CBS) and the stations
 ## for the third location will start at 200 (e.g. 13.2 WWFF becomes 213.2 WWFF).
+##
+## Another mutually exclusive way of remapping appears below. Please only specify one option, but if you do
+## use both, then "remap" will take precedence.
 # remap = false
+
+## Remap channels based off a JSON definition file. You specify a JSON file containing your remappings. 
+## To get your current mappings, you can go to "http://PORT:IP/map.json". Copy that content to a JSON 
+## file (you'll want to pretty it up too to make it easier to work with) and you can edit that JSON file, 
+## save it, and then use this option to load those remappings the next time you run locast2tuner. You 
+## will need to restart locast2tuner in order to see any changes you made (and you may need to recreate 
+## your tuner/EPG setup to have Plex or Emby reflect the right channels). ***NOTE*** This is currently 
+## a manual edit process, so if you want to go this route, please be sure that the JSON content is valid 
+## JSON before trying to use it. A web-based remap editor is in the works.
+# remap_file = "remap.json"
 
 ## Device firmware that is reported to Plex or Emby. Defaults to "homerun3_atsc"
 # device_firmware = "homerun3_atsc"
