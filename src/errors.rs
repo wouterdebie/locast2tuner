@@ -1,4 +1,4 @@
-use actix_web::{dev::HttpResponseBuilder, error, http::header, http::StatusCode, HttpResponse};
+use actix_web::{error, http::StatusCode, BaseHttpResponse};
 use derive_more::{Display, Error};
 
 #[derive(Debug, Display, Error)]
@@ -8,10 +8,8 @@ pub enum AppError {
 }
 
 impl error::ResponseError for AppError {
-    fn error_response(&self) -> HttpResponse {
-        HttpResponseBuilder::new(self.status_code())
-            .insert_header((header::CONTENT_TYPE, "text/html; charset=utf-8"))
-            .body(self.to_string())
+    fn error_response(&self) ->  BaseHttpResponse<actix_web::dev::Body> {
+        BaseHttpResponse::build(self.status_code()).body(self.to_string())
     }
 
     fn status_code(&self) -> StatusCode {

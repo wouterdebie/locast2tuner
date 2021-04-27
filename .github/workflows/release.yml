@@ -2,6 +2,8 @@ on:
   push:
     tags:
       - v*
+    branches:
+      - windows
 
 name: Release Build
 
@@ -48,10 +50,39 @@ jobs:
           name: armv7deb
           path: ./target/armv7-unknown-linux-musleabihf/debian/*
 
-  upload_ppa:
-    needs: [debbuild, raspbianbuild]
+  windowsbuild:
+    # needs: [build]
+    runs-on: windows-latest
+    env:
+      RUSTFLAGS: "-C target-feature=+crt-static"
+    name: Build .msi (windows)
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-windows-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-wix
+          version: latest
+      - run: cargo wix -v --nocapture -o .
+      - name: Upload MSI Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows
+          path: ./*.msi
+
+  upload_binaries:
+    needs: [debbuild, raspbianbuild, windowsbuild]
     runs-on: ubuntu-latest
-    name: Upload to PPA
+    name: Upload to wouterdebie.github.io
     steps:
       - run: sudo apt -y install gnupg
       - uses: actions/download-artifact@v2
@@ -60,7 +91,10 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: armv7deb
-      - name: Checkout PPA repository
+      - uses: actions/download-artifact@v2
+        with:
+          name: windows
+      - name: Checkout wouterdebie.github.io repository
         uses: actions/checkout@master
         with:
           repository: wouterdebie/wouterdebie.github.io
@@ -83,6 +117,7 @@ jobs:
           gpg --default-key "${EMAIL}" -abs -o - Release > Release.gpg
           gpg --default-key "${EMAIL}" --clearsign -o - Release > InRelease
           popd
+          cp *.msi ./wouterdebie.github.io/locast2tuner/win
       - name: Commit & Push changes
         uses: actions-js/push@master
         with:
@@ -138,20 +173,6 @@ jobs:
           tags: ghcr.io/wouterdebie/locast2tuner:latest
           push: true
           platforms: linux/amd64
-
-  update_homebrew:
-    runs-on: ubuntu-latest
-    name: Update homebrew
-    steps:
-      - name: Checkout homebrew tap repository
-        uses: actions/checkout@master
-      - name: Dispatch homebrew repo
-        run: |
-          export LATEST_TAG=$(git tag --sort=committerdate | tail -1)
-          curl -X POST https://api.github.com/repos/wouterdebie/homebrew-repo/dispatches \
-            -H 'Accept: application/vnd.github.everest-preview+json' \
-            -u ${{ secrets.CR_PAT }} \
-            --data '{"event_type": "new_tag", "client_payload": { "tag": "'"${LATEST_TAG}"'" }}'
   # quickcheck:
   # runs-on: ubuntu-latest
   # outputs:

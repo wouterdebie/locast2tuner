@@ -1,0 +1,243 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<!--
+  Copyright (C) 2017 Christopher R. Field.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!--
+  Please do not remove these pre-processor If-Else blocks. These are used with
+  the `cargo wix` subcommand to automatically determine the installation
+  destination for 32-bit versus 64-bit installers. Removal of these lines will
+  cause installation errors.
+-->
+<?if $(var.Platform) = x64 ?>
+    <?define Win64 = "yes" ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+  <?define Win64 = "no" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi' xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+    <Product
+        Id='*'
+        Name='locast2tuner'
+        UpgradeCode='BE60B785-D1CF-4842-AE3A-C087DC42378B'
+        Manufacturer='Wouter de Bie'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Description='Locast.org to Plex Media Server/Emby integration server'
+            Manufacturer='Wouter de Bie'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallPrivileges="elevated"
+            AdminImage="no"
+            InstallScope='perMachine'
+            SummaryCodepage='1252'
+            Platform='$(var.Platform)'/>
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
+        <Property Id='DiskPrompt' Value='locast2tuner Installation'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
+                <Directory Id='APPLICATIONFOLDER' Name='locast2tuner'>
+                    <!--
+                      Disabling the license sidecar file in the installer is a two step process:
+
+                      1. Comment out or remove the `Component` tag along with its contents.
+                      2. Comment out or remove the `ComponentRef` tag with the "License" Id
+                         attribute value further down in this file.
+                    -->
+                    <Component Id='License' Guid='*' Win64='$(var.Win64)'>
+                      <File Id='LicenseFile'
+                          Name='LICENSE'
+                          DiskId='1'
+                          Source='LICENSE'
+                          KeyPath='yes'/>
+                    </Component>
+                    <!-- Its been annoyingly difficult to figure out how to have config files not be overwritten on updates yet removed on uninstall, so we just write them and don't touch them again -->
+                    <Component Id="config.example" Guid="cc509bb7-c1a1-46cf-8c62-7cbb0017783c" Win64='$(var.Win64)' NeverOverwrite='yes'>
+                      <File Id="ConfigFile"
+                        Name="config.example"
+                        Source='assets\config.example'
+                        KeyPath='yes'
+                        DiskId='1'>
+                        <Permission User="Everyone" GenericAll="yes" />
+                        <Permission User="Administrators" GenericAll="yes" />
+                      </File>
+                      </Component>
+                    <Component Id='Locast2tunerService' Guid='*' Win64='$(var.Win64)'>
+                      <File
+                          Id='exe1'
+                          Name='locast2tuner.exe'
+                          DiskId='1'
+                          Source='target\$(var.Profile)\locast2tuner.exe'
+                          KeyPath='yes'
+                        />
+                      <ServiceInstall
+                        Id="ServiceInstaller"
+                        Account="LocalSystem"
+                        Arguments="--config [APPLICATIONFOLDER]config"
+                        Description="This runs the background process for locast2tuner"
+                        DisplayName="locast2tuner Service"
+                        ErrorControl="normal"
+                        LoadOrderGroup="NetworkProvider"
+                        Name="locast2tunerService2"
+                        Start="auto"
+                        Type="ownProcess"
+                        Vital="yes">
+                        <util:PermissionEx User="Everyone" 
+                            ServiceChangeConfig="no"
+                            ServiceEnumerateDependents="no"
+                            ChangePermission="no"
+                            ServiceInterrogate="no"
+                            ServicePauseContinue="no"
+                            ServiceQueryConfig="yes"
+                            ServiceQueryStatus="yes"
+                            ServiceStart="yes"
+                            ServiceStop="yes"
+                        />
+                        <util:PermissionEx User="Administrators" GenericAll="yes" />
+                      </ServiceInstall>
+                    <!-- <ServiceControl Id="ServiceControl_Start"
+                                    Name="locast2tunerService2"
+                                    Start="install"
+                                    Wait="no" /> -->
+                    <ServiceControl Id="ServiceControl_Stop"
+                                    Name="locast2tunerService2"
+                                    Stop="both"
+                                    Remove="uninstall"
+                                    Wait="yes" />
+                    </Component>
+                    <!-- <Directory Id='Bin' Name='bin'>
+                        <Component Id='Path' Guid='2F792F83-0600-4622-9757-2806CE310BA9' Win64='$(var.Win64)' KeyPath='yes'>
+                            <Environment
+                                Id='PATH'
+                                Name='PATH'
+                                Value='[Bin]'
+                                Permanent='no'
+                                Part='last'
+                                Action='set'
+                                System='yes'/>
+                        </Component>
+                        <Component Id='binary0' Guid='*' Win64='$(var.Win64)'>
+                            <File
+                                Id='exe0'
+                                Name='locast2tuner.exe'
+                                DiskId='1'
+                                Source='target/$(var.Profile)/locast2tuner.exe'
+                                KeyPath='yes'/>
+                        </Component>
+                    </Directory> -->
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature
+            Id='Binaries'
+            Title='Application'
+            Description='Installs all binaries and the license.'
+            Level='1'
+            ConfigurableDirectory='APPLICATIONFOLDER'
+            AllowAdvertise='no'
+            Display='expand'
+            Absent='disallow'>
+            <!--
+              Comment out or remove the following `ComponentRef` tag to remove
+              the license sidecar file from the installer.
+            -->
+            <ComponentRef Id='License'/>
+            <!-- <ComponentRef Id='binary0'/> -->
+            <ComponentRef Id='Locast2tunerService'/>
+            <ComponentRef Id='config.example'/>
+            <Feature
+                Id='Environment'
+                Title='PATH Environment Variable'
+                Description='Add the install location of the [ProductName] executable to the PATH system environment variable. This allows the [ProductName] executable to be called from any location.'
+                Level='1'
+                Absent='allow'>
+                <!-- <ComponentRef Id='Path'/> -->
+            </Feature>
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+        <!-- <SetProperty Id="ProgramFilesFolder" Value="[LocalAppDataFolder]" Before="CostFinalize" /> -->
+        
+        <!--
+          Uncomment the following `Icon` and `Property` tags to change the product icon.
+
+          The product icon is the graphic that appears in the Add/Remove
+          Programs control panel for the application.
+        -->
+        <!--<Icon Id='ProductICO' SourceFile='wix\Product.ico'/>-->
+        <!--<Property Id='ARPPRODUCTICON' Value='ProductICO' />-->
+
+        <Property Id='ARPHELPLINK' Value='https://github.com/wouterdebie/locast2tuner'/>
+        <UIRef Id="WixUI_Minimal" />
+        <!-- <UI>
+            <UIRef Id='WixUI_FeatureTree'/> -->
+            <!--
+              Disabling the EULA dialog in the installer is a two step process:
+
+                 1. Uncomment the following two `Publish` tags
+                 2. Comment out or remove the `<WiXVariable Id='WixUILicenseRtf'...` tag further down
+
+            -->
+            <!--<Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='99'>1</Publish>-->
+            <!--<Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='99'>1</Publish>-->
+            
+        <!-- </UI> -->
+
+        <!--
+          Disabling the EULA dialog in the installer requires commenting out
+          or removing the following `WixVariable` tag
+        -->
+        <WixVariable Id='WixUILicenseRtf' Value='wix/License.rtf'/>
+        
+        
+        <!--
+          Uncomment the next `WixVaraible` tag to customize the installer's
+          Graphical User Interface (GUI) and add a custom banner image across
+          the top of each screen. See the WiX Toolset documentation for details
+          about customization.
+
+          The banner BMP dimensions are 493 x 58 pixels.
+        -->
+        <!--<WixVariable Id='WixUIBannerBmp' Value='wix\Banner.bmp'/>-->
+
+        
+        <!--
+          Uncomment the next `WixVariable` tag to customize the installer's
+          Graphical User Interface (GUI) and add a custom image to the first
+          dialog, or screen. See the WiX Toolset documentation for details about
+          customization.
+
+          The dialog BMP dimensions are 493 x 312 pixels.
+        -->
+        <!--<WixVariable Id='WixUIDialogBmp' Value='wix\Dialog.bmp'/>-->
+
+    </Product>
+
+</Wix>

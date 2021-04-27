@@ -1,0 +1,20 @@
+on:
+  push:
+    tags:
+      - v*
+
+name: New tag
+jobs:
+  update_homebrew:
+    runs-on: ubuntu-latest
+    name: Update homebrew
+    steps:
+      - name: Checkout homebrew tap repository
+        uses: actions/checkout@master
+      - name: Dispatch homebrew repo
+        run: |
+          export LATEST_TAG=$(git tag --sort=committerdate | tail -1)
+          curl -X POST https://api.github.com/repos/wouterdebie/homebrew-repo/dispatches \
+            -H 'Accept: application/vnd.github.everest-preview+json' \
+            -u ${{ secrets.CR_PAT }} \
+            --data '{"event_type": "new_tag", "client_payload": { "tag": "'"${LATEST_TAG}"'" }}'

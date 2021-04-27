@@ -375,9 +375,9 @@ async fn show_config<T: 'static + StationProvider>(req: HttpRequest) -> impl Res
 /// EPG in json format. This is pretty much the whole Vec<Station> we have built in memory.
 /// Note that no additional filter is applied.
 async fn epg<T: StationProvider>(data: web::Data<AppState<T>>) -> impl Responder {
-    let stations_mutex = data.service.stations();
-    let stations = &*stations_mutex.await;
-    HttpResponse::Ok().json(stations.lock().await)
+    let stations_mutex = data.service.stations().await;
+    let stations= stations_mutex.lock().await.clone();
+    HttpResponse::Ok().json(stations)
 }
 
 async fn watch_m3u<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder {
@@ -391,7 +391,7 @@ async fn watch_m3u<T: 'static + StationProvider>(req: HttpRequest) -> impl Respo
                 .append_header((LOCATION, &*url.as_str()))
                 .finish()
         }
-        Err(e) => e.error_response(),
+        Err(e) => e.error_response().into(),
     }
 }
 
@@ -407,7 +407,7 @@ async fn watch<T: 'static + StationProvider>(req: HttpRequest) -> impl Responder
                 .content_type("video/mpeg; codecs='avc1.4D401E'")
                 .streaming(Box::pin(stream))
         }
-        Err(e) => e.error_response(),
+        Err(e) => e.error_response().into(),
     }
 }
 
