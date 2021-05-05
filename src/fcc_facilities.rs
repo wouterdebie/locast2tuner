@@ -26,7 +26,7 @@ static MAX_FILE_AGE: u64 = 24 * 60 * 60; // 24 hours
 static CHECK_INTERVAL: u64 = 60 * 60; // 1 hour
 
 static FACILITIES_URL: &str =
-    "https://transition.fcc.gov/ftp/Bureaus/MB/Databases/cdbs/facility.zip";
+    "https://storage.googleapis.com/locast2tuner/facility.zip";
 static DMA_URL: &str = "https://api.locastnet.org/api/dma";
 
 // FCC Facilities are used to map locast stations with FCC channel numbers. After starting the facility,
