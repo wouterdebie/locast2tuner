@@ -75,3 +75,7 @@ rustc_version   = "0.3.3"
 
 [profile.release]
 panic = "abort"
+
+[dev-dependencies]
+cargo-bump = "1.1.0"
+rustfmt = "0.10.0"

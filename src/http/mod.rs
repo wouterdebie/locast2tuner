@@ -14,10 +14,11 @@ use log::info;
 use prettytable::{cell, format, row, Table};
 use reqwest::{header::LOCATION, Url};
 use serde::Serialize;
-use std::{collections::HashMap, convert::TryFrom};
+use std::collections::HashMap;
 use std::{collections::VecDeque, sync::Arc};
 use string_builder::Builder;
 use uuid::Uuid;
+use std::str::FromStr;
 
 const NETWORKS: [&'static str; 6] = ["ABC", "CBS", "NBC", "FOX", "CW", "PBS"];
 
@@ -461,51 +462,57 @@ fn get_stream<T: 'static + StationProvider>(
             }
         }
 
-        let m3u_data = match crate::utils::get(&state.url, None, 5).await {
+        // Try fetching the latest m3u playlist. Intermittent errors may happen here,
+        // and when they do, we just skip updating until the next iteration.
+        match crate::utils::get(&state.url, None, 5).await {
+            Ok(r) => Some(r.text().await.unwrap()),
             Err(e) => {
-                warn!("Unable to get m3u data, stopping stream.. {}", e);
-                return None;
+                warn!("Unable to get m3u data, skipping a fetch.. {}", e);
+                None
             }
-            Ok(r) => r.text().await.unwrap(),
-        };
-
-        let media_playlist = match hls_m3u8::MediaPlaylist::try_from(m3u_data.as_str()) {
-            Ok(p) => p,
-            Err(e) => {
-                warn!("Unable to fetch media playlist, stopping stream.. {}", e);
-                return None;
-            }
-        };
-
-        for media_segment in media_playlist.segments {
-            let (_i, ms) = media_segment;
-            let absolute_uri = match Url::parse(&state.url) {
-                Ok(u) => u,
+        }.and_then(|m3u_data| {
+            // Decode the m3u into a MediaPlaylist.
+            match hls_m3u8::MediaPlaylist::from_str(m3u_data.as_str()) {
+                Ok(p) => Some(p),
                 Err(e) => {
-                    warn!("Unable to parse url! {}", e);
-                    return None;
+                    warn!("Unable to decode media playlist, skipping a fetch.. {}", e);
+                    None
+                }
+        }}).and_then(|media_playlist| {
+            // Loop through each segment and add it to the segments vector
+            // if it's not already in there.
+            for media_segment in media_playlist.segments {
+                let (_i, ms) = media_segment;
+                let absolute_uri = Url::parse(&state.url)
+                    .unwrap()
+                    .join(ms.uri())
+                    .unwrap()
+                    .to_string();
+
+                let s = Segment {
+                    url: absolute_uri,
+                    played: false,
+                    duration: ms.duration.duration(),
+                };
+
+                if !state.segments.contains(&s) {
+                    info!("Stream {} - added segment {:?}", state.stream_id, &s.url);
+                    state.segments.push_back(s);
                 }
             }
-            .join(ms.uri())
-            .unwrap();
+            Some(())
+        });
 
-            let s = Segment {
-                url: absolute_uri.to_string(),
-                played: false,
-                duration: ms.duration.duration(),
-            };
-            if !state.segments.contains(&s) {
-                info!("Stream {} - added segment {:?}", state.stream_id, &s.url);
-                state.segments.push_back(s);
-            }
-        }
-
+        // In order to not grow the state, we drain 10 segments if we have more than
+        // 30. I guess we should check for unplayed segments, but
+        // if we have 30 segments with the first 10 unplayed, we're probably
+        // screwed anyway.
         if state.segments.len() >= 30 {
             info!("Stream {} - draining 10 segments", state.stream_id);
             state.segments.drain(0..10);
         }
 
-        // Find first unplayed segment
+        // Find first unplayed segment and if there are no unplayed segments, we bail
         let first = match state.segments.iter_mut().find(|s| !s.played) {
             Some(s) => s,
             None => {
@@ -514,7 +521,16 @@ fn get_stream<T: 'static + StationProvider>(
             }
         };
 
+        // Figure out how long we'll wait with serving the next segment. We do this
+        // because otherwise, we constantly loop through our segment list and
+        // make unnecessary calls to locast. This happens because serving a segment
+        // instantly returns, rather than waiting for the client to play
+        // the segment.
         let runtime = Utc::now() - state.start_time;
+
+        // We want to be 50% of a segment behind. This is a nice trade-off
+        // between having enough time to fetch the next segment and calling
+        // locast too often.
         let target_diff = 0.5 * first.duration.as_secs_f32();
 
         let wait = if state.seconds_served > 0.0 {
@@ -534,6 +550,7 @@ fn get_stream<T: 'static + StationProvider>(
             tokio::time::sleep(tokio::time::Duration::from_secs_f32(wait)).await;
         }
 
+        // Download the actual chunk from locast
         let chunk = match crate::utils::get(&first.url, None, 10).await {
             Err(e) => {
                 warn!("No bytes fetched.. Stopping stream.. {}", e);
@@ -542,6 +559,7 @@ fn get_stream<T: 'static + StationProvider>(
             Ok(r) => r.bytes().await.unwrap().to_vec(),
         };
 
+        // Mark the segment as played
         first.played = true;
         info!(
             "Stream {} - playing: segment {:?}",
