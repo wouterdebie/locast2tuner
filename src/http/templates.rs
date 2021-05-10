@@ -93,7 +93,7 @@ pub fn epg_xml(stations: &Vec<Station>) -> String {
                             <category lang="en">{encode_minimal(&genre)}</category>
                         }
                     }
-                    <category lang="en">{encode_minimal(&program.showType)}</category>
+                    <category lang="en">{encode_minimal(&program.showType.as_ref().unwrap_or(&"unknown".to_string()))}</category>
                     <length units="seconds">{program.duration}</length>
 
                     if (program.preferredImage.is_some() && program.preferredImageHeight.is_some() && program.preferredImageWidth.is_some()){

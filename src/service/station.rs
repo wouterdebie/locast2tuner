@@ -69,7 +69,7 @@ pub struct Listing {
     pub seriesId: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shortDescription: Option<String>,
-    pub showType: String,
+    pub showType: Option<String>,
     pub startTime: i64,
     pub stationId: i64,
     pub title: String,
