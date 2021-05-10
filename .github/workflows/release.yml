@@ -39,6 +39,8 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-arm7-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install extra deps
+        run: sudo apt install libssl-dev
       - name: Run cargo deb
         id: debbuild
         uses: wouterdebie/cargo-deb-armv7-debian@1.1
