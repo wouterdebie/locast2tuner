@@ -15,12 +15,12 @@ use prettytable::{cell, format, row, Table};
 use reqwest::{header::LOCATION, Url};
 use serde::Serialize;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::{collections::VecDeque, sync::Arc};
 use string_builder::Builder;
 use uuid::Uuid;
-use std::str::FromStr;
 
-const NETWORKS: [&'static str; 6] = ["ABC", "CBS", "NBC", "FOX", "CW", "PBS"];
+const NETWORKS: [&str; 6] = ["ABC", "CBS", "NBC", "FOX", "CW", "PBS"];
 
 /// Struct that is passed to HTTP handlers that contains config, the service that can be used to
 /// lookup locast data, etc.
@@ -54,7 +54,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
             // Construct some app_state we can pass around
             let app_state = web::Data::new(AppState::<T> {
                 config: config.clone(),
-                service: service.clone(),
+                service,
                 station_scan: Mutex::new(false),
             });
 
@@ -259,12 +259,12 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
         let logo = &station
             .logoUrl
             .as_ref()
-            .or(station.logo226Url.as_ref())
+            .or_else(|| station.logo226Url.as_ref())
             .unwrap();
         let channel = &station
             .channel_remapped
             .as_ref()
-            .unwrap_or(station.channel.as_ref().unwrap());
+            .unwrap_or_else(|| station.channel.as_ref().unwrap());
         let groups = if NETWORKS.contains(&call_sign.as_str()) {
             format!("{};Network", &city,)
         } else {
@@ -336,19 +336,19 @@ async fn map_json<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespons
         .iter()
         .map(|station| {
             (
-                format!("channel.{}", station.id).to_string(),
+                format!("channel.{}", station.id),
                 ChannelRemapEntry {
                     original_call_sign: station.callSign.clone(),
                     remap_call_sign: station
                         .callSign_remapped
                         .clone()
-                        .or(Some(station.callSign.clone()))
+                        .or_else(|| Some(station.callSign.clone()))
                         .unwrap(),
                     original_channel: station.channel.clone().unwrap(),
                     remap_channel: station
                         .channel_remapped
                         .clone()
-                        .or(Some(station.channel.clone().unwrap()))
+                        .or_else(|| Some(station.channel.clone().unwrap()))
                         .unwrap(),
                     city: station.city.clone().unwrap(),
                     active: station.active,
@@ -470,7 +470,8 @@ fn get_stream<T: 'static + StationProvider>(
                 warn!("Unable to get m3u data, skipping a fetch.. {}", e);
                 None
             }
-        }.and_then(|m3u_data| {
+        }
+        .and_then(|m3u_data| {
             // Decode the m3u into a MediaPlaylist.
             match hls_m3u8::MediaPlaylist::from_str(m3u_data.as_str()) {
                 Ok(p) => Some(p),
@@ -478,7 +479,9 @@ fn get_stream<T: 'static + StationProvider>(
                     warn!("Unable to decode media playlist, skipping a fetch.. {}", e);
                     None
                 }
-        }}).and_then(|media_playlist| {
+            }
+        })
+        .map(|media_playlist| {
             // Loop through each segment and add it to the segments vector
             // if it's not already in there.
             for media_segment in media_playlist.segments {
@@ -558,11 +561,11 @@ fn get_stream<T: 'static + StationProvider>(
             }
             Ok(r) => match r.bytes().await {
                 Ok(b) => b.to_vec(),
-                Err(e) =>  {
+                Err(e) => {
                     warn!("No bytes fetched.. Stopping stream.. {}", e);
                     return None;
                 }
-            }
+            },
         };
 
         // Mark the segment as played

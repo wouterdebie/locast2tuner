@@ -210,12 +210,11 @@ fn highest_quality_url(
         hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
         _ => Cow::Borrowed(""),
     };
-    let full_url = Url::parse(&stream_url)
+    Url::parse(&stream_url)
         .unwrap()
         .join(&variant_url.to_string())
         .unwrap()
-        .to_string();
-    full_url
+        .to_string()
 }
 
 impl fmt::Display for LocastService {
@@ -242,7 +241,7 @@ fn start_updater_thread(
     let thread_geo = geo.clone();
     let thread_credentials = credentials.clone();
     let thread_facilities = fcc_facilities.clone();
-    let thread_timeout = config.cache_timeout.clone();
+    let thread_timeout = config.cache_timeout;
 
     task::spawn(async move {
         loop {
@@ -282,13 +281,10 @@ async fn build_stations(
         station.city = Some(geo.name.to_owned());
 
         // See if we can get the channel number from the call sign (i.e. X.Y NAME)
-        let channel_from_call_sign = match Regex::new(r"(\d+\.\d+) .+")
+        let channel_from_call_sign = Regex::new(r"(\d+\.\d+) .+")
             .unwrap()
             .captures(&station.callSign)
-        {
-            Some(c) => Some(c.get(1).map_or("", |m| m.as_str())),
-            None => None,
-        };
+            .map(|c| c.get(1).map_or("", |m| m.as_str()));
 
         // If the station's call sign is in the format "X.Y NAME", use X.Y as the channel number,
         // otherwise, we'll have to lookup the channel number using the name or the call sign.
@@ -296,7 +292,7 @@ async fn build_stations(
         let c = if let Some(channel) = channel_from_call_sign {
             Some(channel.to_string())
         } else if let Some((call_sign, sub_channel)) =
-            detect_callsign(&station.name).or(detect_callsign(&station.callSign))
+            detect_callsign(&station.name).or_else(|| detect_callsign(&station.callSign))
         {
             let dma = geo.DMA.parse::<i64>().unwrap();
             Some(fcc_facilities.lookup(dma, call_sign, sub_channel).await)

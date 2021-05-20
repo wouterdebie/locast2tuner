@@ -100,10 +100,11 @@ impl Config {
                     // Overrides are defined as a regular string (old format)
                     Some(o) => Some(o.split(',').map(|x| x.to_string()).collect()),
                     // Overrides are defined as an arra (new format)
-                    None => match cfg.grab_multi().conf("override_zipcodes").done() {
-                        Some(o) => Some(o.collect()),
-                        None => None,
-                    },
+                    None => cfg
+                        .grab_multi()
+                        .conf("override_zipcodes")
+                        .done()
+                        .map(|o| o.collect()),
                 }
             }
         };
@@ -181,7 +182,7 @@ fn create_cache_directory(name: String) -> PathBuf {
 }
 
 // Load the UUID from cache directory if exists
-fn load_uuid(cache_directory: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
+fn load_uuid(cache_directory: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let uid_file = cache_directory.join(Path::new("uuid"));
     let uuid = match uid_file.exists() {
         true => fs::read_to_string(uid_file)?,

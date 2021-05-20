@@ -33,7 +33,7 @@ pub fn device_xml<T: StationProvider>(config: &Config, service: &T, host: String
     r
 }
 
-pub fn lineup_xml(stations: &Vec<Station>, host: String) -> String {
+pub fn lineup_xml(stations: &[Station], host: String) -> String {
     let r = xml! {
         <Lineup>
             for station in (stations.iter().filter(|s| s.active)) {
@@ -47,7 +47,7 @@ pub fn lineup_xml(stations: &Vec<Station>, host: String) -> String {
     }.to_string();
     r
 }
-pub fn epg_xml(stations: &Vec<Station>) -> String {
+pub fn epg_xml(stations: &[Station]) -> String {
     let xml_version = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
     let doctype =
         "<!DOCTYPE tv SYSTEM \"https://raw.githubusercontent.com/XMLTV/xmltv/master/xmltv.dtd\">\n";

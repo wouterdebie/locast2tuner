@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
+cargo check
+cargo clippy -- -D warnings
+cargo test
 cargo bump patch
 cargo check
-cargo test
 ./tools/gh-md-toc --insert --no-backup --hide-footer README.md
 new_version=$(grep ^version Cargo.toml | awk '{print $3}' | sed s/\"//g)
 git commit -am "New version ${new_version}"

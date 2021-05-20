@@ -41,7 +41,7 @@ pub async fn get(
             }
             .build()
             .unwrap();
-            Ok(client.execute(request).await?)
+            Ok(client.execute(request).await.unwrap())
         })
         .await
 }
@@ -58,7 +58,7 @@ pub async fn post(uri: &str, data: Value, max_retries: usize) -> Result<Response
                 .json(&data)
                 .build()
                 .unwrap();
-            Ok(client.execute(request).await?)
+            Ok(client.execute(request).await.unwrap())
         })
         .await
 }
@@ -85,7 +85,7 @@ pub fn hdhr_checksum(device_id: usize) -> usize {
     checksum ^= lookup_table[(device_id >> 12) & 0x0F];
     checksum ^= (device_id >> 8) & 0x0F;
     checksum ^= lookup_table[(device_id >> 4) & 0x0F];
-    checksum ^= (device_id >> 0) & 0x0F;
+    checksum ^= (device_id) & 0x0F;
     checksum
 }
 
@@ -131,7 +131,7 @@ pub fn format_date_iso(timestamp: i64) -> String {
     datetime.format("%F").to_string()
 }
 
-const HD: [&'static str; 3] = ["1080", "720", "HDTV"];
+const HD: [&str; 3] = ["1080", "720", "HDTV"];
 
 /// Returns the aspect ratio based on a string of properties.
 pub fn aspect_ratio(properties: &str) -> String {
@@ -146,8 +146,8 @@ pub fn aspect_ratio(properties: &str) -> String {
 /// Return either `HDTV` or `SD` based on a string of properties
 pub fn quality(properties: &str) -> String {
     if properties.contains("HDTV") {
-        return "HDTV".to_string();
+        "HDTV".to_string()
     } else {
-        return "SD".to_string();
+        "SD".to_string()
     }
 }

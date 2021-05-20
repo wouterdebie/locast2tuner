@@ -5,9 +5,9 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use log::info;
 use serde::Deserialize;
-use std::{collections::HashMap, sync::Arc, time::SystemTime, usize};
+use std::io::BufReader;
+use std::{collections::HashMap, path::Path, sync::Arc, time::SystemTime, usize};
 use std::{fs::File, io::prelude::*};
-use std::{io::BufReader, path::PathBuf};
 use tokio::task;
 use tokio::time::{sleep, Duration};
 
@@ -20,13 +20,12 @@ static FAC_CALLSIGN: usize = 5;
 static FAC_CHANNEL: usize = 6;
 static TV_VIRTUAL_CHANNEL: usize = 28;
 
-static SERVICE_LIST: &'static [&str] = &["DT", "TX", "TV", "TB", "LD", "DC"];
+static SERVICE_LIST: &[&str] = &["DT", "TX", "TV", "TB", "LD", "DC"];
 
 static MAX_FILE_AGE: u64 = 24 * 60 * 60; // 24 hours
 static CHECK_INTERVAL: u64 = 60 * 60; // 1 hour
 
-static FACILITIES_URL: &str =
-    "https://storage.googleapis.com/locast2tuner/facility.zip";
+static FACILITIES_URL: &str = "https://storage.googleapis.com/locast2tuner/facility.zip";
 static DMA_URL: &str = "https://api.locastnet.org/api/dma";
 
 // FCC Facilities are used to map locast stations with FCC channel numbers. After starting the facility,
@@ -95,7 +94,7 @@ fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
 }
 
 /// Check if a path has expired, based on `MAX_FILE_AGE`
-fn path_expired(path: &PathBuf) -> bool {
+fn path_expired(path: &Path) -> bool {
     let modified = path.metadata().unwrap().modified().unwrap();
     SystemTime::now()
         .duration_since(modified)
@@ -105,7 +104,7 @@ fn path_expired(path: &PathBuf) -> bool {
 }
 
 /// Load facilities from `cache_file`
-async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, String)> {
+async fn load<'a>(cache_file: &Path) -> HashMap<(i64, String), (String, String)> {
     // First get the locast_dmas from locast.org
     let locast_dmas: Vec<LocastDMA> = crate::utils::get(DMA_URL, None, 100)
         .await
@@ -145,7 +144,7 @@ async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, Strin
     let mut loaded_lines: Vec<String> = Vec::new();
     let mut facilities_map: HashMap<(i64, String), (String, String)> = HashMap::new();
     for line in lines.into_iter().map(|l| l.unwrap()) {
-        let parts: Vec<&str> = line.split("|").collect();
+        let parts: Vec<&str> = line.split('|').collect();
 
         let lic_expiration_date = parts[LIC_EXPIRATION_DATE];
         let nielsen_dma = parts[NIELSEN_DMA];
@@ -158,13 +157,13 @@ async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, Strin
         let tv_virtual_channel = &parts[TV_VIRTUAL_CHANNEL];
 
         if fac_status == "LICEN"
-            && lic_expiration_date != ""
-            && nielsen_dma != ""
+            && !lic_expiration_date.is_empty()
+            && !nielsen_dma.is_empty()
             && SERVICE_LIST.contains(&fac_service)
         {
             let s = format!("{} 23:59:59 +0000", lic_expiration_date);
             if DateTime::parse_from_str(&s, "%m/%d/%Y %T %z").unwrap() >= Utc::now() {
-                let call_sign = fac_call_sign.split("-").collect::<Vec<&str>>()[0];
+                let call_sign = fac_call_sign.split('-').collect::<Vec<&str>>()[0];
 
                 // Get the locast_id based on the Nielsen DMA
                 let locast_id = nielsen_dma_to_locast_id(nielsen_dma, &locast_dmas);
@@ -188,7 +187,7 @@ async fn load<'a>(cache_file: &PathBuf) -> HashMap<(i64, String), (String, Strin
 }
 
 /// Try to find a locast_id by matching a Nielsen DMA with a Locast DMA name. This uses a fuzzy matcher.
-fn nielsen_dma_to_locast_id(nielsen_dma: &str, locast_dmas: &Vec<LocastDMA>) -> Option<i64> {
+fn nielsen_dma_to_locast_id(nielsen_dma: &str, locast_dmas: &[LocastDMA]) -> Option<i64> {
     let matcher = SkimMatcherV2::default();
     let mut matches: Vec<(i64, i64)> = locast_dmas
         .iter()
@@ -203,7 +202,7 @@ fn nielsen_dma_to_locast_id(nielsen_dma: &str, locast_dmas: &Vec<LocastDMA>) -> 
 }
 
 /// Write the cache file to `cache_path`
-fn write_cache_file(cache_file: &PathBuf, contents: &[u8]) {
+fn write_cache_file(cache_file: &Path, contents: &[u8]) {
     let display = cache_file.display();
     let mut file = match File::create(&cache_file) {
         Err(why) => panic!("Couldn't create {}: {}", display, why),

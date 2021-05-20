@@ -15,7 +15,7 @@ use simple_error::SimpleError;
 use std::env;
 use std::sync::Arc;
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[actix_web::main]
 async fn main() -> Result<(), SimpleError> {
     // Create a configuration struct that we'll pass along throughout the application
@@ -60,7 +60,7 @@ async fn main() -> Result<(), SimpleError> {
     // Create Locast Services
     let services = if let Some(zipcodes) = &conf.override_zipcodes {
         let services = zipcodes
-            .into_iter()
+            .iter()
             .map(|x| {
                 service::LocastService::new(
                     conf.clone(),
@@ -83,12 +83,12 @@ async fn main() -> Result<(), SimpleError> {
         let mp = vec![Multiplexer::new(services, conf.clone())];
         match http::start(mp, conf.clone()).await {
             Ok(()) => Ok(()),
-            Err(_) => return Err(SimpleError::new("Failed to start servers")),
+            Err(_) => Err(SimpleError::new("Failed to start servers")),
         }
     } else {
         match http::start(services, conf.clone()).await {
             Ok(()) => Ok(()),
-            Err(_) => return Err(SimpleError::new("Failed to start servers")),
+            Err(_) => Err(SimpleError::new("Failed to start servers")),
         }
     }
 }
