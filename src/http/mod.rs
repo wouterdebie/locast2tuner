@@ -556,7 +556,13 @@ fn get_stream<T: 'static + StationProvider>(
                 warn!("No bytes fetched.. Stopping stream.. {}", e);
                 return None;
             }
-            Ok(r) => r.bytes().await.unwrap().to_vec(),
+            Ok(r) => match r.bytes().await {
+                Ok(b) => b.to_vec(),
+                Err(e) =>  {
+                    warn!("No bytes fetched.. Stopping stream.. {}", e);
+                    return None;
+                }
+            }
         };
 
         // Mark the segment as played
