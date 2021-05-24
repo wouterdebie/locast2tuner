@@ -102,6 +102,7 @@ pub fn epg_xml(stations: &[Station]) -> String {
 
                     if (program.episodeNumber.is_some() && program.seasonNumber.is_some()) {
                         <episode-num system="xmltv_ns">{format!("{}.{}.", program.seasonNumber.unwrap() - 1, program.episodeNumber.unwrap() - 1)}</episode-num>
+                        <episode-num>{format!("S{:02}E{:02}", program.seasonNumber.unwrap() - 1, program.episodeNumber.unwrap() - 1)}</episode-num>
                     } else if (program.episodeNumber.is_some()) {
                         <episode-num system="xmltv_ns">{format!("0.{}.", program.episodeNumber.unwrap() - 1)}</episode-num>
                     } else if (program.genres.is_some() && &program.genres.as_ref().unwrap().to_owned() == "News" || (program.entityType != "Movie" && program.isNew.is_some() && program.isNew.unwrap())) {
