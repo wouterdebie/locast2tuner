@@ -41,7 +41,7 @@ pub async fn get(
             }
             .build()
             .unwrap();
-            Ok(client.execute(request).await.unwrap())
+            client.execute(request).await
         })
         .await
 }
@@ -58,7 +58,7 @@ pub async fn post(uri: &str, data: Value, max_retries: usize) -> Result<Response
                 .json(&data)
                 .build()
                 .unwrap();
-            Ok(client.execute(request).await.unwrap())
+            client.execute(request).await
         })
         .await
 }
