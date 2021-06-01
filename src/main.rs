@@ -66,7 +66,7 @@ async fn main() -> Result<(), SimpleError> {
                     conf.clone(),
                     credentials.clone(),
                     fcc_facilities.clone(),
-                    Some(x.to_string()),
+                    Some(x.to_owned()),
                 )
             })
             .collect_vec();

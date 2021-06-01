@@ -274,7 +274,7 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
         let tvg_name = if data.config.multiplex {
             format!("{} ({})", call_sign, city)
         } else {
-            call_sign.to_string()
+            call_sign.to_owned()
         };
 
         builder.append(format!(
@@ -315,7 +315,7 @@ async fn lineup_json<T: 'static + StationProvider>(req: HttpRequest) -> HttpResp
                     .channel_remapped
                     .as_ref()
                     .unwrap_or(&station.channel.as_ref().unwrap().to_owned())
-                    .to_string(),
+                    .to_owned(),
                 GuideName: station.name.to_owned(),
                 URL: url,
             }
@@ -365,7 +365,7 @@ async fn show_config<T: 'static + StationProvider>(req: HttpRequest) -> impl Res
     let mut config = (*req.app_data::<web::Data<AppState<T>>>().unwrap().config).clone();
 
     if req.query_string() != "show_password" {
-        config.password = "*******".to_string();
+        config.password = "*******".to_owned();
     }
 
     let result = toml::to_string(&config).unwrap();

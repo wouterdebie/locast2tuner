@@ -61,7 +61,7 @@ impl FCCFacilities {
     pub async fn lookup(&self, locast_dma: i64, call_sign: &str, sub_channel: &str) -> String {
         let facilities_map = self.facilities_map.lock().await;
         let (fac_channel, tv_virtual_channel) = facilities_map
-            .get(&(locast_dma, call_sign.to_string()))
+            .get(&(locast_dma, call_sign.to_owned()))
             .unwrap(); // This should exist
 
         if tv_virtual_channel.is_empty() {
@@ -153,8 +153,8 @@ async fn load<'a>(cache_file: &Path) -> HashMap<(i64, String), (String, String)>
         let fac_call_sign = parts[FAC_CALLSIGN];
 
         // Used for lookup
-        let fac_channel = &parts[FAC_CHANNEL];
-        let tv_virtual_channel = &parts[TV_VIRTUAL_CHANNEL];
+        let fac_channel = parts[FAC_CHANNEL];
+        let tv_virtual_channel = parts[TV_VIRTUAL_CHANNEL];
 
         if fac_status == "LICEN"
             && !lic_expiration_date.is_empty()
@@ -170,7 +170,7 @@ async fn load<'a>(cache_file: &Path) -> HashMap<(i64, String), (String, String)>
                 if locast_id.is_some() {
                     facilities_map.insert(
                         (locast_id.unwrap(), call_sign.to_owned()),
-                        (fac_channel.to_string(), tv_virtual_channel.to_string()),
+                        (fac_channel.to_owned(), tv_virtual_channel.to_owned()),
                     );
                     loaded_lines.push(line);
                 }

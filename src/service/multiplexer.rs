@@ -49,7 +49,7 @@ impl StationProvider for Arc<Multiplexer> {
             .station_id_service_map
             .lock()
             .await
-            .get(&id.to_string())
+            .get(&id.to_owned())
         {
             Some(s) => s.clone(),
             None => return Err(AppError::NotFound),
@@ -120,8 +120,8 @@ impl StationProvider for Arc<Multiplexer> {
         Arc::new(Geo {
             latitude: 0.0,
             longitude: 0.0,
-            DMA: "000".to_string(),
-            name: "Multiplexer".to_string(),
+            DMA: "000".to_owned(),
+            name: "Multiplexer".to_owned(),
             active: true,
             timezone: None,
         })
@@ -132,7 +132,7 @@ impl StationProvider for Arc<Multiplexer> {
     }
 
     fn zipcode(&self) -> String {
-        "".to_string()
+        "".to_owned()
     }
 
     fn services(&self) -> Vec<LocastServiceArc> {

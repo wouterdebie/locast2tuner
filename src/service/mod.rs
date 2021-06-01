@@ -174,7 +174,7 @@ impl StationProvider for LocastServiceArc {
         if let Some(z) = &self.zipcode {
             z.to_owned()
         } else {
-            "".to_string()
+            "".to_owned()
         }
     }
 
@@ -290,7 +290,7 @@ async fn build_stations(
         // otherwise, we'll have to lookup the channel number using the name or the call sign.
         // And if we can't find the channel, we panic.
         let c = if let Some(channel) = channel_from_call_sign {
-            Some(channel.to_string())
+            Some(channel.to_owned())
         } else if let Some((call_sign, sub_channel)) =
             detect_callsign(&station.name).or_else(|| detect_callsign(&station.callSign))
         {
@@ -304,7 +304,7 @@ async fn build_stations(
         };
         station.channel = c;
         // Rewrite the callsign to remove the channel number
-        station.callSign = crate::utils::name_only(&station.callSign).to_string();
+        station.callSign = crate::utils::name_only(&station.callSign).to_owned();
         stations.push(station);
     }
     stations

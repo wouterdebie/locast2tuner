@@ -137,17 +137,17 @@ const HD: [&str; 3] = ["1080", "720", "HDTV"];
 pub fn aspect_ratio(properties: &str) -> String {
     for hd in HD.iter() {
         if properties.contains(hd) {
-            return "16:9".to_string();
+            return "16:9".to_owned();
         }
     }
-    "4:3".to_string()
+    "4:3".to_owned()
 }
 
 /// Return either `HDTV` or `SD` based on a string of properties
 pub fn quality(properties: &str) -> String {
     if properties.contains("HDTV") {
-        "HDTV".to_string()
+        "HDTV".to_owned()
     } else {
-        "SD".to_string()
+        "SD".to_owned()
     }
 }

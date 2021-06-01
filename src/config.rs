@@ -94,11 +94,11 @@ impl Config {
 
         // First check if there's a comma-separated list from the command line
         conf.override_zipcodes = match cfg.grab().arg("override_zipcodes").done() {
-            Some(o) => Some(o.split(',').map(|x| x.to_string()).collect()),
+            Some(o) => Some(o.split(',').map(|x| x.to_owned()).collect()),
             None => {
                 match cfg.grab().conf("override_zipcodes").done() {
                     // Overrides are defined as a regular string (old format)
-                    Some(o) => Some(o.split(',').map(|x| x.to_string()).collect()),
+                    Some(o) => Some(o.split(',').map(|x| x.to_owned()).collect()),
                     // Overrides are defined as an arra (new format)
                     None => cfg
                         .grab_multi()
