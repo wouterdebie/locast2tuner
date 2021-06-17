@@ -23,6 +23,9 @@ Please provide any logs that show the error.
 ** Configuration **
 Add a copy of your config. You can get a copy of your running config by opening /config in a browser (e.g http://localhost:6077/config). This will not expose your locast password. If you can't access /config, please add your config file *without* your password.
 
+**Environment**
+What operating system and version you are using.
+
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
