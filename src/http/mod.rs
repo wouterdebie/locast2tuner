@@ -75,6 +75,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
                     .route("/lineup.json", web::get().to(lineup_json::<T>))
                     .route("/lineup.post", web::post().to(lineup_post))
                     .route("/lineup.xml", web::get().to(lineup_xml::<T>))
+                    .route("/remap", web::get().to(map_json::<T>))
                     .route("/map.json", web::get().to(map_json::<T>))
                     .route("/tuner.m3u", web::get().to(tuner_m3u::<T>))
                     .service(web::resource("/watch/{id}.m3u").route(web::get().to(watch_m3u::<T>)))
@@ -256,12 +257,12 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
             .as_ref()
             .unwrap_or(call_sign_or_name);
         let city = station.city.as_ref().unwrap();
-        let logo = &station
+        let logo = station
             .logoUrl
             .as_ref()
             .or_else(|| station.logo226Url.as_ref())
             .unwrap();
-        let channel = &station
+        let channel = station
             .channel_remapped
             .as_ref()
             .unwrap_or_else(|| station.channel.as_ref().unwrap());
@@ -279,7 +280,7 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
 
         builder.append(format!(
             "#EXTINF:-1 tvg-id=\"channel.{}\" tvg-name=\"{}\" tvg-logo=\"{}\" tvg-chno=\"{}\" group-title=\"{}\", {}",
-            &station.id, &call_sign, &logo, &channel, &groups, &tvg_name
+            station.id, call_sign, logo, channel, groups, tvg_name
         ));
 
         let url = format!("http://{}/watch/{}.m3u", &host, &station.id);

@@ -185,7 +185,7 @@ impl StationProvider for LocastServiceArc {
     }
 }
 
-/// Sort the variant streams by bandwith (desc), pick the top one and return the full URL
+/// Sort the variant streams by bandwidth (desc), pick the top one and return the full URL
 fn highest_quality_url(
     mut variant_streams: Vec<hls_m3u8::tags::VariantStream>,
     stream_url: &str,
