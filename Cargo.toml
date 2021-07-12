@@ -28,30 +28,30 @@ systemd-units = { enable = false }
 
 [dependencies]
 actix-rt = "2.2.0"
-actix-web = "4.0.0-beta.3"
+actix-web = "4.0.0-beta.8"
 again = "0.1.2"
-async-trait = "0.1.48"
+async-trait = "0.1.50"
 bytes = "1.0.1"
 chrono = "0.4.19"
 chrono-tz = "0.5.3"
 clap = "3.0.0-beta.2"
 clap_conf = "0.1.5"
-derive_more = "0.99.13"
-dirs = "3.0.1"
-format_xml = "0.1"
-futures = "0.3"
+derive_more = "0.99.16"
+dirs = "3.0.2"
+format_xml = "0.2.0"
+futures = "0.3.15"
 fuzzy-matcher = "0.3.7"
-hls_m3u8 = "0.4"
+hls_m3u8 = "0.4.0"
 htmlescape = "0.3.1"
-itertools = "0.10.0"
+itertools = "0.10.1"
 lazy_static = "1.4.0"
 log = "0.4.14"
-prettytable-rs = "^0.8"
-regex = "1"
+prettytable-rs = "0.8.0"
+regex = "1.5.4"
 # Vendored native-tls, otherwise raspberry pi build breaks
-reqwest = { version = "0.11", features = ["json", "native-tls-vendored"] }
-serde = { version = "1.0.123", features = ["derive"] }
-serde_json = "1.0"
+reqwest = { version = "0.11.4", features = ["json", "native-tls-vendored"] }
+serde = { version = "1.0.126", features = ["derive"] }
+serde_json = "1.0.64"
 simple-error = "0.2.3"
 slog = "2.7.0"
 slog-async = "2.6.0"
@@ -59,20 +59,20 @@ slog-scope = "4.4.0"
 slog-stdlog = "4.1.0"
 slog-term = "2.8.0"
 string-builder = "0.2.0"
-sys-info = "0.8.0"
+sys-info = "0.9.0"
 timer = "0.2.0"
-tokio = "1.4.0"
-toml = "0.5"
+tokio = "1.8.1"
+toml = "0.5.8"
 tz-search = "0.1.1"
-url = "2.2.1"
-uuid = { version = "0.8", features = ["serde", "v4", "v5"] }
-zip = "0.5.10"
+url = "2.2.2"
+uuid = { version = "0.8.2", features = ["serde", "v4", "v5"] }
+zip = "0.5.13"
 
 [target.'cfg(unix)'.dependencies]
 slog-syslog = "0.12.0"
 
 [build-dependencies]
-rustc_version   = "0.3.3"
+rustc_version   = "0.4.0"
 
 [profile.release]
 panic = "abort"

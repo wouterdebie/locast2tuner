@@ -1,4 +1,4 @@
-use actix_web::{dev::HttpResponseBuilder, error, http::header, http::StatusCode, HttpResponse};
+use actix_web::{HttpResponse, HttpResponseBuilder, error, http::StatusCode, http::header};
 use derive_more::{Display, Error};
 
 #[derive(Debug, Display, Error)]
