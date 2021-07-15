@@ -1,7 +1,7 @@
 version: '3'
 services:
   locast2tuner:
-    image: ghcr.io/wouterdebie/locast2tuner
+    image: ghcr.io/wouterdebie/locast2tuner:latest
     container_name: locast2tuner
     volumes:
       - ./.locast2tuner:/app/config

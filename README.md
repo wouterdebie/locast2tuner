@@ -93,19 +93,87 @@ $ brew install locast2tuner
 ## Docker
 A Docker image is available from `ghcr.io/wouterdebie/locast2tuner:latest` and is built from this [Dockerfile](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile).
 
-To run:
-```sh
+You will need a [configuration](#configuration) file with a minimum of your Locast account settings in it.
+
+```bash
 # Create a config directory (e.g. $HOME/.locast2tuner) and copy the example file in there:
 $ mkdir $HOME/.locast2tuner
 $ curl -o $HOME/.locast2tuner/config https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example
-# ... edit the file ...
-$ docker pull ghcr.io/wouterdebie/locast2tuner:latest
-$ docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
+# ... edit the file to match your settings ...
 ```
 
-If you'd like to use `docker-compose` you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml).
+>**Note:** The configuration file above will work with Docker on Linux and Mac.  If you are using Docker for Windows, you will have to modify the volume mappings below accordingly.  You may also have to run `dos2unix config` before launching the container to remove DOS/Windows carriage-returns.
+### Docker Compose (_recommended_)
 
->**Note:** The instructions above will work with Docker on Linux and Mac.  If you are using Docker for Windows, you will have to modify the volume mapping (`-v`) accordingly.  You may also have to run `dos2unix config` before launching the container to remove DOS/Windows carriage-returns.
+If you'd like to use Docker Compose  you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml) and edit it to match your settings.
+#### To run:
+
+Create a `docker-compose.yml`:
+```yaml
+version: '3'
+services:
+  locast2tuner:
+    image: ghcr.io/wouterdebie/locast2tuner:latest
+    container_name: locast2tuner
+    volumes:
+      - ./.locast2tuner:/app/config
+    ports:
+      - 6077:6077
+    restart: unless-stopped
+```
+
+Start the container:
+
+`docker-compose up -d`
+
+#### To upgrade:
+
+Pull any new versions of images refrenced in `docker-compose.yml`:
+
+`docker-compose pull`
+
+Restart any containers in `docker-compose.yml` with newly pulled images:
+
+`docker-compose up -d`
+
+### Manual
+
+#### To run:
+Pull latest locast2tuner image:
+```
+docker pull ghcr.io/wouterdebie/locast2tuner:latest
+```
+
+Run the container:
+```
+docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
+```
+#### To upgrade: 
+
+Pull the latest version of the locast2tuner container image:
+
+```
+docker pull ghcr.io/wouterdebie/locast2tuner:latest
+```
+
+Stop the existing container:
+
+```
+docker stop locast2tuner
+```
+
+Remove the existing container:
+
+```
+docker rm locast2tuner
+```
+
+Issue your original `docker run` command:
+
+```
+`docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
+```
+
 ## Building from source
 The only build requirement `locast2tuner` has is [Rust](https://www.rust-lang.org/) 1.50.0+.
 
