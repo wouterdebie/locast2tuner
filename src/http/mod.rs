@@ -279,8 +279,8 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
         };
 
         builder.append(format!(
-            "#EXTINF:-1 tvg-id=\"channel.{}\" tvg-name=\"{}\" tvg-logo=\"{}\" tvg-chno=\"{}\" group-title=\"{}\", {}",
-            station.id, call_sign, logo, channel, groups, tvg_name
+            "#EXTINF:-1 channel-id=\"{}\" tvg-id=\"channel.{}\" tvg-name=\"{}\" tvg-logo=\"{}\" tvg-chno=\"{}\" group-title=\"{}\", {}",
+            station.id, station.id, call_sign, logo, channel, groups, tvg_name
         ));
 
         let url = format!("http://{}/watch/{}.m3u", &host, &station.id);
