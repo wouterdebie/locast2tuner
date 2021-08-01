@@ -10,7 +10,10 @@ password = "very_secret_password"
 
 ## What zip codes to override. By default this is not set and locast2tuner will use your external IP
 ## to determine your location.
-#override_zipcodes = ["98101","94102","90210","85006","80123","57701","57103","51054","55111","75001","77002","60601","46077","30301","33602","33125","33403","20002","21206","19103","18505","10009","02115"]
+#
+# Please see https://www.locast.org/dma for a current map of the supported regions
+#
+#override_zipcodes = ["98101","94102","90210","85006","80019","57701","57103","51054","55111","75001","77002","60018","46077","30301","33602","33125","33403","20002","21206","19103","18505","10009","02115","53558","32789","28102","95605","44102","43016","48201","53202","97086","00909","27545","37660","15120"]
 
 ## How many days of EPG data to fetch. The default is 8, which is the maximum of data locast.org provides
 # days = 8
