@@ -1,20 +1,22 @@
 This file is purely for documentation only. It contains working zip codes for known Locast regions.
 You can use this to override zip codes.
 
+Please see https://www.locast.org/dma for a current map of the supported regions
+
 Zip code, City, State
 --------------------
 98101, Seattle, WA
 94102, San Francisco, CA
 90210, Los Angeles, CA
 85006, Phoenix, AZ
-80123, Denver, CO
+80019, Denver, CO
 57701, Rapid City, SD
 57103, Sioux Falls, SD
 51054, Sioux City, IA
 55111, Minneapolis, MN
 75001, Dallas, TX
 77002, Houston, TX
-60601, Chicago, IL
+60018, Chicago, IL
 46077, Indianapolis, IN
 30301, Atlanta, GA
 33602, Tampa, FL
@@ -28,5 +30,14 @@ Zip code, City, State
 02115, Boston, MA
 53558, Madison, WA
 32789, Orlando, FL
-28105, Charlotte, NC
+28102, Charlotte, NC
 95605, Sacramento, CA
+44102, Cleveland, OH
+43016, Columbus, OH
+48201, Detroit, MI
+53202, Milwaukee, WI
+97086, Portland OR
+00909, Puerto Rico
+27545, Raleigh NC
+37660, Tri-Cities TN
+15120, Pittsburgh PA
