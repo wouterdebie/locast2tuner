@@ -93,7 +93,7 @@ pub fn hdhr_checksum(device_id: usize) -> usize {
 pub fn name_only(value: &str) -> &str {
     match Regex::new(r"\d+\.\d+ (.+)").unwrap().captures(value) {
         Some(c) => c.get(1).map_or("", |m| m.as_str()),
-        None => &value,
+        None => value,
     }
 }
 

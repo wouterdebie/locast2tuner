@@ -38,7 +38,7 @@ pub fn lineup_xml(stations: &[Station], host: String) -> String {
         <Lineup>
             for station in (stations.iter().filter(|s| s.active)) {
                 <Program>
-                    <GuideNumber>{encode_minimal(&station.channel_remapped.as_ref().unwrap_or(&station.channel.as_ref().unwrap()))}</GuideNumber>
+                    <GuideNumber>{encode_minimal(station.channel_remapped.as_ref().unwrap_or_else(|| station.channel.as_ref().unwrap()))}</GuideNumber>
                     <GuideName>{encode_minimal(&station.name)}</GuideName>
                     <URL>{"http://"}{host}{"/watch/"}{station.id}</URL>
                 </Program>
@@ -55,12 +55,12 @@ pub fn epg_xml(stations: &[Station]) -> String {
         <tv generator-info-name="locast2tuner">
         for station in (stations.iter().filter(|s| s.active)) {
             <channel id={format!("channel.{}",station.id)}>
-                <display-name lang="en">{encode_minimal(&station.callSign_remapped.as_ref().unwrap_or(&station.callSign))}</display-name>
-                <display-name lang="en">{format!("{} {}", encode_minimal(&station.channel_remapped.as_ref().unwrap_or(&station.channel.as_ref().unwrap())), encode_minimal(&station.callSign_remapped.as_ref().unwrap_or(&station.callSign)))}</display-name>
+                <display-name lang="en">{encode_minimal(station.callSign_remapped.as_ref().unwrap_or(&station.callSign))}</display-name>
+                <display-name lang="en">{format!("{} {}", encode_minimal(station.channel_remapped.as_ref().unwrap_or_else(|| station.channel.as_ref().unwrap())), encode_minimal(station.callSign_remapped.as_ref().unwrap_or(&station.callSign)))}</display-name>
                 <display-name lang="en">{encode_minimal(&station.name)}</display-name>
-                <display-name lang="en">{encode_minimal(&station.channel_remapped.as_ref().unwrap_or(&station.channel.as_ref().unwrap()))}</display-name>
+                <display-name lang="en">{encode_minimal(station.channel_remapped.as_ref().unwrap_or_else(|| station.channel.as_ref().unwrap()))}</display-name>
                 <display-name lang="en">{station.id}</display-name>
-                <icon src={encode_minimal(&station.logoUrl.as_ref().unwrap())} />
+                <icon src={encode_minimal(station.logoUrl.as_ref().unwrap())} />
             </channel>
         }
         for station in (stations){
@@ -93,7 +93,7 @@ pub fn epg_xml(stations: &[Station]) -> String {
                             <category lang="en">{encode_minimal(&genre)}</category>
                         }
                     }
-                    <category lang="en">{encode_minimal(&program.showType.as_ref().unwrap_or(&"unknown".to_string()))}</category>
+                    <category lang="en">{encode_minimal(program.showType.as_ref().unwrap_or(&"unknown".to_string()))}</category>
                     <length units="seconds">{program.duration}</length>
 
                     if (program.preferredImage.is_some() && program.preferredImageHeight.is_some() && program.preferredImageWidth.is_some()){

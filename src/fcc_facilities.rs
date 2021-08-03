@@ -115,7 +115,7 @@ async fn load<'a>(cache_file: &Path) -> HashMap<(i64, String), (String, String)>
 
     let lines: Vec<Result<String, std::io::Error>>;
     // Using cached facilities if possible.
-    let downloaded = if cache_file.exists() && !path_expired(&cache_file) {
+    let downloaded = if cache_file.exists() && !path_expired(cache_file) {
         info!("Using cached FCC facilities at {}", cache_file.display());
         lines = BufReader::new(File::open(cache_file).unwrap())
             .lines()
@@ -192,7 +192,7 @@ fn nielsen_dma_to_locast_id(nielsen_dma: &str, locast_dmas: &[LocastDMA]) -> Opt
     let mut matches: Vec<(i64, i64)> = locast_dmas
         .iter()
         .map(|l| (l.id, l.name.to_lowercase()))
-        .map(|(locast_id, name)| (locast_id, matcher.fuzzy_match(&nielsen_dma, &name)))
+        .map(|(locast_id, name)| (locast_id, matcher.fuzzy_match(nielsen_dma, &name)))
         .filter(|(_, ratio)| ratio.is_some() && ratio.unwrap() > 115)
         .map(|(locast_id, ratio)| (locast_id, ratio.unwrap()))
         .collect();

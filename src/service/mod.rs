@@ -210,7 +210,7 @@ fn highest_quality_url(
         hls_m3u8::tags::VariantStream::ExtXStreamInf { uri, .. } => uri,
         _ => Cow::Borrowed(""),
     };
-    Url::parse(&stream_url)
+    Url::parse(stream_url)
         .unwrap()
         .join(&variant_url.to_string())
         .unwrap()
