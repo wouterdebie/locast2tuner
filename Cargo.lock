@@ -1218,9 +1218,9 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hls_m3u8"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a138d4ea26604c9dc52bad8143b2530481814e8459fcc76eea132b6049d1768f"
+checksum = "0e2bd2de7f92b5301546ce1ac53a4ae5cf2f6b10751b100ab1efb73c19788fba"
 dependencies = [
  "derive_builder",
  "derive_more",
