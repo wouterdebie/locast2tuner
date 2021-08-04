@@ -7,7 +7,8 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-static LOGIN_URL: &str = "https://api.locastnet.org/api/user/login";
+static LOGIN_URL: &str =
+    "https://api.locastnet.org/api/user/login?client_id=CqhAMsBw%2BnxTXSJMLGqyOw%3D%3D";
 static USER_URL: &str = "https://api.locastnet.org/api/user/me";
 static TOKEN_LIFETIME: i64 = 3600;
 
@@ -59,7 +60,8 @@ async fn login<'a>(username: &str, password: &str) -> String {
     info!("Logging in with {}", username);
     let credentials = json!({
         "username": username,
-        "password": password
+        "password": password,
+        "captcha": "foo"
     });
 
     let resp = crate::utils::post(LOGIN_URL, credentials, 10000)
