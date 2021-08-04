@@ -89,7 +89,7 @@ jobs:
           github_token: ${{ secrets.API_KEY }}
           directory: wouterdebie.github.io
           repository: wouterdebie/wouterdebie.github.io
-          force: true
+          branch: main
 
   amd64binaries:
     runs-on: ubuntu-latest
