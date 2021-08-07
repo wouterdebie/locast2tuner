@@ -15,7 +15,7 @@ echo "=== Updating TOC ==="
 ./tools/gh-md-toc --insert --no-backup --hide-footer README.md
 new_version=$(grep ^version Cargo.toml | awk '{print $3}' | sed s/\"//g)
 echo "=== git commit ==="
-git commit -am "New version ${new_version}"
+git commit -am "Release ${new_version}"
 echo "=== Tagging version v${new_version} ==="
 git tag v${new_version}
 echo "=== git push ==="
