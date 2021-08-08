@@ -1,11 +1,13 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us improve (MAKE SURE TO FILL IN ALL NECESSARY INFO!)
 title: ''
 labels: bug
 assignees: ''
 
 ---
+
+*NOTE THAT UNCLEAR BUG REPORTS (i.e. without the information requested below like logs, settings, versions, etc) MIGHT BE CLOSED WITHOUT ANY HELP!!*
 
 **Describe the bug**
 A clear and concise description of what the bug is.
