@@ -68,6 +68,9 @@ pub fn epg_xml(stations: &[Station]) -> String {
             for program in (&station.listings) {
                 <programme start={format_time(program.startTime)}  stop={format_time(program.startTime + program.duration * 1000)} channel={format!("channel.{}",station.id)}>
                     <title lang="en">{encode_minimal(&program.title)}</title>
+                    if let Some(episode_title) = (&program.episodeTitle) {
+                        <sub-title lang="en">{encode_minimal(episode_title)}</sub-title>
+                    }
                     if let Some(description) = (&program.description) {
                         <desc lang="en">{encode_minimal(description)}</desc>
                     }
