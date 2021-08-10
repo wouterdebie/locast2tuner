@@ -60,51 +60,53 @@ Apart from the fact that everything is Rust now, the big difference between `loc
 
 Even though this project started as a locast to PMS interface, it's more focused on integrating locast with Emby, since Emby provides a bit more functionality when it comes to Live TV and Tuner (like m3u tuners, XMLTV, etc).
 
-# TODO
-This project isn't complete yet. It works, but there are a few things I'd like to get done. These can be found on the [Issues page](https://github.com/wouterdebie/locast2tuner/issues)
-
 # Getting started
 Before you get started with installing and running locast2tuner, make sure you have an active [locast.org](https://locast.org) account with an active donation.
 ## Ubuntu/Debian
 Ubuntu/Debian packages are available for both amd64 and arm7 (Raspbian):
 ```sh
 # Add the PPA key
-$ curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
+curl -s "https://wouterdebie.github.io/ppa/KEY.gpg" | sudo apt-key add -
 # Add the locast2tuner repository
-$ sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
-$ sudo apt update
+sudo curl -o /etc/apt/sources.list.d/locast2tuner.list "https://wouterdebie.github.io/ppa/sources.list"
+sudo apt update
 # Install locast2tuner
-$ sudo apt install locast2tuner
+sudo apt install locast2tuner
 ```
 
 Create a config file. Don't forget to edit the config file!
 ```sh
-$ sudo cp /etc/locast2tuner/config.example /etc/locast2tuner/config
-# Edit the config file
-$ nano /etc/locast2tuner/config
+sudo cp /etc/locast2tuner/config.example /etc/locast2tuner/config
+# .. edit the config /etc/locast2tuner/config (e.g nano /etc/locast2tuner/config) ..
 ```
 Finally, enable and start the service:
 
 ```sh
-$ sudo systemctl enable locast2tuner
-$ sudo systemctl start locast2tuner
+sudo systemctl enable locast2tuner
+sudo systemctl start locast2tuner
 ```
 ## MacOS
 A MacOS package is available though [Homebrew](https://brew.sh/):
 ```sh
-$ brew tap wouterdebie/repo
-$ brew install locast2tuner
+# Install from homebrew
+brew tap wouterdebie/repo
+brew install locast2tuner
+# Get the sample config
+curl -o locast2tuner.config https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example
+# .. edit locast2tuner.config ..
+# Run locast2tuner
+locast2tuner --config locast2tuner.config
 ```
 
 ## Docker
 A Docker image is available from `ghcr.io/wouterdebie/locast2tuner:latest` and is built from this [Dockerfile](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile).
 
-You will need a [configuration](#configuration) file with a minimum of your Locast account settings in it.
+You will need a [configuration](#configuration) file with a minimum of your Locast account settings in it:
 
 ```bash
 # Create a config directory (e.g. $HOME/.locast2tuner) and copy the example file in there:
-$ mkdir $HOME/.locast2tuner
-$ curl -o $HOME/.locast2tuner/config https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example
+mkdir $HOME/.locast2tuner
+curl -o $HOME/.locast2tuner/config https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example
 # ... edit the file to match your settings ...
 ```
 
@@ -112,72 +114,44 @@ $ curl -o $HOME/.locast2tuner/config https://raw.githubusercontent.com/wouterdeb
 ### Docker Compose (_recommended_)
 
 If you'd like to use Docker Compose  you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml) and edit it to match your settings.
-#### To run:
+#### Running
 
-Create a `docker-compose.yml`:
-```yaml
-version: '3'
-services:
-  locast2tuner:
-    image: ghcr.io/wouterdebie/locast2tuner:latest
-    container_name: locast2tuner
-    volumes:
-      - ./.locast2tuner:/app/config
-    ports:
-      - 6077:6077
-    restart: unless-stopped
+```sh
+# Get the sample docker-compose.yml
+curl -o docker-compose.yml https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/docker/docker-compose.yml
+# .. edit docker-compose.yml to match your settings ..
+# Start the Docker container
+docker-compose up -d
 ```
 
-Start the container:
+#### Upgrading
 
-`docker-compose up -d`
-
-#### To upgrade:
-
-Pull any new versions of images refrenced in `docker-compose.yml`:
-
-`docker-compose pull`
-
-Restart any containers in `docker-compose.yml` with newly pulled images:
-
-`docker-compose up -d`
-
-### Manual
-
-#### To run:
-Pull latest locast2tuner image:
+```sh
+# Pull any new versions of images referenced in docker-compose.yml
+docker-compose pull
+# Restart any containers in `docker-compose.yml` with newly pulled images
+docker-compose up -d
 ```
+
+### Manual Docker
+
+#### Running
+```sh
+# Pull latest locast2tuner image
 docker pull ghcr.io/wouterdebie/locast2tuner:latest
-```
-
-Run the container:
-```
+# Start the container
 docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
 ```
-#### To upgrade: 
-
-Pull the latest version of the locast2tuner container image:
-
-```
+#### Upgrading
+```sh
+# Pull the latest version of the locast2tuner container image
 docker pull ghcr.io/wouterdebie/locast2tuner:latest
-```
-
-Stop the existing container:
-
-```
+# Stop the existing container
 docker stop locast2tuner
-```
-
-Remove the existing container:
-
-```
+# Remove the existing container
 docker rm locast2tuner
-```
-
-Issue your original `docker run` command:
-
-```
-`docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
+# Start the container
+docker run -p 6077:6077 -v $HOME/.locast2tuner/:/app/config --name locast2tuner -d ghcr.io/wouterdebie/locast2tuner:latest
 ```
 
 ## Building from source
@@ -189,9 +163,9 @@ The only build requirement `locast2tuner` has is [Rust](https://www.rust-lang.or
 
 ### Building
 ```sh
-$ git clone https://github.com/wouterdebie/locast2tuner
-$ cd locast2tuner
-$ cargo build --release
+git clone https://github.com/wouterdebie/locast2tuner
+cd locast2tuner
+cargo build --release
 ```
 
 ### Installing
@@ -199,6 +173,8 @@ You'll end up with a binary in `./target/release/locast2tuner`. You can copy thi
 
 # Usage
 For usage options, please run `locast2tuner -h`.
+# Quickstart guides for Plex and Emby
+Detailed instructions are available for integrating `locast2tuner` with both [Plex](docs/01_plex.md) and [Emby](docs/02_emby.md). Make sure to check out the detailed configuration below.
 # Configuration
 `locast2tuner` parameters can be specified as either command line arguments or in a [TOML](https://github.com/toml-lang/toml) configuration file that can be specified using the `--config` argument.
 
@@ -225,10 +201,6 @@ See [assets/config.example](https://raw.githubusercontent.com/wouterdebie/locast
 ## Displaying running config
 You can display your running config (which could be a combination of a config file and command line parameters) by opening the `/config` path (e.g. `http://127.0.0.1:6077/config`). Normally the password is obfuscated, but if you add the query parameter `show_password` (e.g. `http://127.0.0.1:6077/config?showpass`), the password will become visible.
 
-## Quickstart guides for Plex and Emby
-
-Along with the technical info below, detailed instructions are available for integrating `locast2tuner` with both [Plex](docs/01_plex.md) and [Emby](docs/02_emby.md) if you want to get started quickly.
-
 ## Location overrides
 By default `locast2tuner` uses your IP address to determine your location, but it also allows you to override the locast.org location you're creating a Tuner for:
 
@@ -241,7 +213,6 @@ When using multiple regions, `locast2tuner` will start multiple instances on TCP
 
 Note: PMS supports multiple devices, but does not support multiple Electronic Programming Guides (EPGs). Emby supports both. I personally use Emby since it allows for multiple EPGs.
 
-## Usage in PMS or Emby
 ### Tuner emulation
 `locast2tuner` can act as both a HDHomerun device or as an m3u tuner. Plex mainly supports HDHomerun, while Emby supports both. In case `locast2tuner` is used as an HDHomerun device it will copy the `mpegts` stream from locast to the Media server. When using `locast2tuner` as an m3u tuner, it will pass on the m3u from locast to the media server without any stream interference. This means that the media server will directly connect to
 the stream.
@@ -274,9 +245,13 @@ Another way to do remapping is to use the `--remap_file=filename` option. You sp
 - `--syslog`: log through syslog
 - `--logfile <filename>`: log to a file separately
 
+# TODO
+This project isn't complete yet. It works, but there are a few things I'd like to get done. These can be found on the [Issues page](https://github.com/wouterdebie/locast2tuner/issues)
+
 # Submitting bugs or feature requests
 ## Bugs
 When you encounter a bug, please use [Github Issues](https://github.com/wouterdebie/locast2tuner/issues):
+- _**PLEASE USE THE ISSUE TEMPLATES!**_ Issues that are lacking log excerpts and other information might be closed. In other words don't file issues that are simple "It doesn't work" ones.
 - Add a detailed description of the issue you're experiencing.
 - Explain what steps can be taken to reproduce the issue.
 - If possible, add an excerpt of the log file that shows the error.
