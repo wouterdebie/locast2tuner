@@ -184,7 +184,7 @@ The configuration file format is:
 string_option = "<value1>"
 flag = <true/false>
 numerical_option = <number>
-list_option = ["<value1>", "<value2">]
+list_option = ["<value1>", "<value2>"]
 ```
 
 Example:
