@@ -105,11 +105,15 @@ You will need a [configuration](#configuration) file with a minimum of your Loca
 ```bash
 # Create a config directory (e.g. $HOME/.locast2tuner) and copy the example file in there:
 mkdir $HOME/.locast2tuner
+# Download a sample config file in $HOME/.locast2tuner/config
 curl -o $HOME/.locast2tuner/config https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example
 # ... edit the file to match your settings ...
 ```
 
->**Note:** The configuration file above will work with Docker on Linux and Mac.  If you are using Docker for Windows, you will have to modify the volume mappings below accordingly.  You may also have to run `dos2unix config` before launching the container to remove DOS/Windows carriage-returns.
+>The Docker image has the path of the configuration file hardcoded to `/app/config/config` inside the container, so make sure the volume mappings are correct.
+
+>locast2tuner requires Unix style line endings (i.e. LF) in the config file. This means that in Windows you have to make sure that the configuration file is saved in the right format. Either use an editor that allows you to save with Unix style line endings (like Notepad++ or VS Code) or you can run `dos2unix config` to remove DOS/Windows (i.e. CRLF) line endings prior to launching the container.
+
 ### Docker Compose (_recommended_)
 
 If you'd like to use Docker Compose  you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml) and edit it to match your settings.
