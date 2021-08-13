@@ -279,9 +279,15 @@ async fn tuner_m3u<T: 'static + StationProvider>(req: HttpRequest) -> HttpRespon
         };
 
         builder.append(format!(
-            "#EXTINF:-1 channel-id=\"{}\" tvg-id=\"channel.{}\" tvg-name=\"{}\" tvg-logo=\"{}\" tvg-chno=\"{}\" tvc-guide-stationid=\"{}\" group-title=\"{}\", {}",
-            station.id, station.id, call_sign, logo, channel, station.stationId, groups, tvg_name
+            "#EXTINF:-1 channel-id=\"{}\" tvg-id=\"channel.{}\" tvg-name=\"{}\" tvg-logo=\"{}\" tvg-chno=\"{}\" group-title=\"{}\"",
+            station.id, station.id, call_sign, logo, channel, groups
         ));
+
+        if !data.config.no_tvc_guide_station {
+            builder.append(format!(" tvc-guide-stationid=\"{}\"", station.stationId));
+        }
+
+        builder.append(format!(", {}", tvg_name));
 
         let url = format!("http://{}/watch/{}.m3u", &host, &station.id);
         builder.append(format!("\n{}\n\n", url));

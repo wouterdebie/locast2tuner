@@ -20,6 +20,7 @@ pub struct Config {
     pub device_version: String,
     pub disable_station_cache: bool,
     pub multiplex: bool,
+    pub no_tvc_guide_station: bool,
     pub override_zipcodes: Option<Vec<String>>,
     pub password: String,
     pub port: u16,
@@ -62,6 +63,7 @@ impl Config {
                 (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0)")
                 (@arg logfile: -l --logfile +takes_value "Log file location")
                 (@arg remap_file: --remap_file +takes_value "Remap file location")
+                (@arg no_tvc_guide_station: --no_tvc_guide_station "Don't show no_tvc_guide_station in tuner.m3u")
 
         )
         .get_matches();
@@ -91,6 +93,8 @@ impl Config {
         conf.verbose = cfg.grab().arg("verbose").conf("verbose").t_def::<u8>(0);
         conf.multiplex =
             cfg.bool_flag("multiplex", Filter::Arg) || cfg.bool_flag("multiplex", Filter::Conf);
+        conf.no_tvc_guide_station = cfg.bool_flag("no_tvc_guide_station", Filter::Arg)
+            || cfg.bool_flag("no_tvc_guide_station", Filter::Conf);
 
         // First check if there's a comma-separated list from the command line
         conf.override_zipcodes = match cfg.grab().arg("override_zipcodes").done() {
