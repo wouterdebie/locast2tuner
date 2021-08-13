@@ -136,7 +136,10 @@ jobs:
         with:
           context: .
           file: ./assets/docker/Dockerfile
-          tags: ghcr.io/wouterdebie/locast2tuner:latest
+          images: ghcr.io/wouterdebie/locast2tuner
+          tags: |
+            latest
+            type=semver,pattern={{version}}
           push: true
           platforms: linux/amd64
   # quickcheck:
