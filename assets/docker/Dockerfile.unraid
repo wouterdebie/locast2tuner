@@ -15,10 +15,4 @@ RUN \
 # copy local files
 COPY assets/unraid/run.sh /
 
-# set work directory
-WORKDIR /config
-
-# ports and volumes
-VOLUME /config
-
 ENTRYPOINT ["bash", "/run.sh"]
