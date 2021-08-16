@@ -1,0 +1,24 @@
+FROM lsiobase/ubuntu:focal
+LABEL maintainer="wouterdebie"
+ENV multiplex="true"
+
+COPY *.deb /
+RUN \
+    apt-get update -y && \
+    apt-get upgrade -y && \
+    dpkg -i *.deb && \
+    rm -rf \
+    /tmp/* \
+    /var/lib/apt/lists/* \
+    /var/tmp/*
+
+# copy local files
+COPY assets/unraid/run.sh /
+
+# set work directory
+WORKDIR /config
+
+# ports and volumes
+VOLUME /config
+
+ENTRYPOINT ["bash", "/run.sh"]
