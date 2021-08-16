@@ -13,6 +13,12 @@ RUN \
     /var/tmp/*
 
 # copy local files
-COPY assets/unraid/run.sh /
+COPY assets/unraid/run.sh /config
 
-ENTRYPOINT ["bash", "/run.sh"]
+# set work directory
+WORKDIR /config
+
+# ports and volumes
+VOLUME /config
+
+ENTRYPOINT ["bash", "/config/run.sh"]

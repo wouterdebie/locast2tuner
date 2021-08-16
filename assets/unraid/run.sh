@@ -1,6 +1,6 @@
 #!/usr/bin/with-contenv bash
 
-CONFIG_FILE="/config"
+CONFIG_FILE="/config/locast2tuner.config"
 cat <<EOF > $CONFIG_FILE
 username="${L2TUSER}"
 password="${L2TPASS}"
