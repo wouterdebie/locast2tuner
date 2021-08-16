@@ -20,7 +20,7 @@ pub struct Station {
     pub stationId: String,
     pub timezone: Option<String>,
     pub tivoId: Option<i64>,
-    pub transcodeId: i64,
+    pub transcodeId: Option<i64>,
     pub channel_remapped: Option<String>,
     pub callSign_remapped: Option<String>,
     pub remapped: Option<bool>,
