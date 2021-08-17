@@ -1,0 +1,38 @@
+name: github pages
+
+on:
+  push:
+    branches:
+      - gh-pages
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: "latest"
+
+      - name: Setup mdbook-theme latest
+        run: |
+          curl -s https://api.github.com/repos/zjp-CN/mdbook-theme/releases/latest \
+               | grep browser_download_url \
+               | grep mdbook-theme_linux \
+               | cut -d '"' -f 4 \
+               | wget -qi -
+          tar -xvzf mdbook-theme_linux.tar.gz
+          echo $PWD >> $GITHUB_PATH
+      - run: cd book && mdbook build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/book
+          force_orphan: true
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
+          commit_message: ${{ github.event.head_commit.message  }}
