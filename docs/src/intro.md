@@ -3,9 +3,6 @@
 locast2tuner provides an interface between locast.org and [Plex Media Server (PMS)](https://plex.tv) or [Emby](https://emby.media) by acting like an [HDHomerun](https://www.silicondust.com/) or an m3u tuner and an XMLTV provider.
 
 `locast2tuner` can imitate one or more digital tuners and provides geo cloaking across regions.
-
-Source [https://github.com/wouterdebie/locast2tuner](https://github.com/wouterdebie/locast2tuner)
-
 ## Features
 - Override your location using ZIP code or GPS coordinates
 - Multiple digital tuners in a single server, either as separate servers or as one (multiplexing)
