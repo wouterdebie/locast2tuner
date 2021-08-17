@@ -7,7 +7,7 @@ title = "locast2tuner"
 
 [output.html]
 git-repository-url = "https://github.com/wouterdebie/locast2tuner"
-edit-url-template = "https://github.com/wouterdebie/locast2tuner/edit/main/docs/src/{path}"
+edit-url-template = "https://github.com/wouterdebie/locast2tuner/edit/main/docs/{path}"
 
 [preprocessor.theme]
 # # enable pagetoc (toc on the right)
