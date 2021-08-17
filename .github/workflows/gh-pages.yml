@@ -3,7 +3,7 @@ name: github pages
 on:
   push:
     branches:
-      - gh-pages
+      - main
 
 jobs:
   deploy:
@@ -25,7 +25,7 @@ jobs:
                | wget -qi -
           tar -xvzf mdbook-theme_linux.tar.gz
           echo $PWD >> $GITHUB_PATH
-      - run: cd book && mdbook build
+      - run: cd docs && mdbook build
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
