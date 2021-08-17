@@ -6,6 +6,7 @@ This application provides an interface between locast.org and Media Servers like
 
 `locast2tuner` can imitate one or more digital tuners and provides geo cloaking across regions.
 
+> ❗ Since locast.org uses Amazon Cloudfront to stream, region restrictions imposed by Cloudfront can not be circumvented. This means that `locast2tuner` might not work outside of the United States.
 # Features
 - Override your location using ZIP code or GPS coordinates
 - Multiple digital tuners in a single server, either as separate servers or as one (multiplexing)
