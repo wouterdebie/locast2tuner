@@ -15,11 +15,11 @@ pub trait Or {
     fn or<'a>(&'a self, other: &'a str) -> &str;
 }
 
-static BACKOFF_DELAY: u64 = 100;
+static BACK_OFF_DELAY: u64 = 100;
 static MAX_DELAY: u64 = 5000;
 
 lazy_static! {
-    static ref POLICY: RetryPolicy = RetryPolicy::exponential(Duration::from_millis(BACKOFF_DELAY))
+    static ref POLICY: RetryPolicy = RetryPolicy::exponential(Duration::from_millis(BACK_OFF_DELAY))
         .with_max_delay(Duration::from_millis(MAX_DELAY))
         .with_jitter(false);
 }

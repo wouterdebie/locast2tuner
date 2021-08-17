@@ -33,11 +33,11 @@ static DMA_URL: &str = "https://api.locastnet.org/api/dma";
 #[derive(Debug)]
 pub struct FCCFacilities {
     config: Arc<Config>,
-    facilities_map: FacilitiesMap,
+    facilities_map: Arc<Mutex<FacilitiesMap>>,
 }
 
 // (locast_id, call_sign) --> (fac_channel, tv_virtual_channel)
-type FacilitiesMap = Arc<Mutex<HashMap<(i64, String), (String, String)>>>;
+type FacilitiesMap = HashMap<(i64, String), (String, String)>;
 
 impl FCCFacilities {
     /// Create a new facilities. Normally this only has to be done once.
@@ -48,7 +48,7 @@ impl FCCFacilities {
         ));
 
         // Start a background thread that will update the facilities periodically
-        start_updater_thread(&facilities_map, &config);
+        start_updater_thread(facilities_map.clone(), config.clone());
 
         // Build and return
         FCCFacilities {
@@ -76,19 +76,16 @@ impl FCCFacilities {
 
 /// Start an thread that will update the facilities map regularly and store them
 /// in the cache directory
-fn start_updater_thread(facilities_map: &FacilitiesMap, config: &Arc<Config>) {
-    let facilities_map = facilities_map.clone();
-    let config = config.clone();
-
+fn start_updater_thread(facilities_map: Arc<Mutex<FacilitiesMap>>, config: Arc<Config>) {
     task::spawn(async move {
         loop {
             sleep(Duration::from_secs(CHECK_INTERVAL)).await;
 
             info!("Reloading FCC facilities..");
             let cache_file = config.cache_directory.join("facilities");
-            let new_facilties = load(&cache_file).await;
+            let new_facilities = load(&cache_file).await;
             let mut facilities = facilities_map.lock().await;
-            *facilities = new_facilties;
+            *facilities = new_facilities;
         }
     });
 }

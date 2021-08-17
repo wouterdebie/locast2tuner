@@ -1,9 +1,9 @@
 pub mod multiplexer;
 pub mod station;
-pub mod stationprovider;
+pub mod station_provider;
 use self::{
     station::{Station, Stations},
-    stationprovider::StationProvider,
+    station_provider::StationProvider,
 };
 use crate::{
     config::Config, credentials::LocastCredentials, errors::AppError,
@@ -52,7 +52,7 @@ impl LocastService {
         credentials: Arc<LocastCredentials>,
         fcc_facilities: Arc<FCCFacilities>,
         zipcode: Option<String>,
-    ) -> LocastServiceArc {
+    ) -> Arc<LocastService> {
         // Figure out what location we are serving
         let geo = Arc::new(geo_from(&zipcode).await);
         if !geo.active {
@@ -77,11 +77,7 @@ impl LocastService {
             .await,
         ));
 
-        // Start an updater thread that will periodically update all station information
-        // including EPG data
-        start_updater_thread(&config, &stations, &geo, &credentials, &fcc_facilities);
-
-        Arc::new(LocastService {
+        let service = Arc::new(LocastService {
             config,
             credentials,
             fcc_facilities,
@@ -89,7 +85,12 @@ impl LocastService {
             geo,
             uuid,
             stations,
-        })
+        });
+
+        // Start an updater thread that will periodically update all station information
+        // including EPG data
+        start_updater_thread(service.clone());
+        service
     }
 
     /// Convenience method for building stations based on &self
@@ -110,10 +111,8 @@ impl LocastService {
     }
 }
 
-pub type LocastServiceArc = Arc<LocastService>;
-
 #[async_trait]
-impl StationProvider for LocastServiceArc {
+impl StationProvider for Arc<LocastService> {
     /// Get stations
     async fn stations(&self) -> Stations {
         if self.config.disable_station_cache {
@@ -180,7 +179,7 @@ impl StationProvider for LocastServiceArc {
 
     /// Returns the services associated to this service. In the case of locast service implementation,
     /// this is an empty vector.
-    fn services(&self) -> Vec<LocastServiceArc> {
+    fn services(&self) -> Vec<Arc<LocastService>> {
         Vec::new()
     }
 }
@@ -228,33 +227,19 @@ impl fmt::Display for LocastService {
 }
 
 /// Start a `LocastService` updater thread
-fn start_updater_thread(
-    config: &Arc<Config>,
-    stations: &Stations,
-    geo: &Arc<Geo>,
-    credentials: &Arc<LocastCredentials>,
-    fcc_facilities: &Arc<FCCFacilities>,
-) {
-    // TODO: Can this be done nicer?
-    let thread_stations = stations.clone();
-    let thread_config = config.clone();
-    let thread_geo = geo.clone();
-    let thread_credentials = credentials.clone();
-    let thread_facilities = fcc_facilities.clone();
-    let thread_timeout = config.cache_timeout;
-
+fn start_updater_thread(service: Arc<LocastService>) {
     task::spawn(async move {
         loop {
-            sleep(Duration::from_secs(thread_timeout)).await;
+            sleep(Duration::from_secs(service.config.cache_timeout)).await;
             let ls = locast_stations(
-                &thread_geo.DMA,
-                thread_config.days,
-                &thread_credentials.token().await,
+                &service.geo.DMA,
+                service.config.days,
+                &service.credentials.token().await,
             )
             .await;
             let new_stations =
-                build_stations(ls, &thread_geo, &thread_config, &thread_facilities).await;
-            let mut stations = thread_stations.lock().await;
+                build_stations(ls, &service.geo, &service.config, &service.fcc_facilities).await;
+            let mut stations = service.stations.lock().await;
             *stations = new_stations;
         }
     });

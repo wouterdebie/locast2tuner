@@ -5,7 +5,7 @@ use crate::utils::format_time;
 use crate::utils::format_time_local_iso;
 use crate::utils::quality;
 use crate::utils::split;
-use crate::{config::Config, service::station::Station, service::stationprovider::StationProvider};
+use crate::{config::Config, service::station::Station, service::station_provider::StationProvider};
 use chrono_tz::Tz;
 use format_xml::xml;
 use htmlescape::encode_minimal;

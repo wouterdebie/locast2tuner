@@ -2,24 +2,25 @@ use super::station::ChannelRemapEntry;
 use crate::{
     config::Config,
     errors::AppError,
-    service::{Geo, LocastServiceArc, Station, StationProvider, Stations},
+    service::{Geo, LocastService, Station, StationProvider, Stations},
 };
 use async_trait::async_trait;
 use futures::lock::Mutex;
 use log::info;
 use std::{collections::HashMap, fs::File, sync::Arc};
+
 /// Multiplex `LocastService` objects. `Multiplexer` implements the `StationProvider` trait
 /// and can act as a LocastService.
 pub struct Multiplexer {
-    services: Vec<LocastServiceArc>,
+    services: Vec<Arc<LocastService>>,
     config: Arc<Config>,
-    station_id_service_map: Mutex<HashMap<String, LocastServiceArc>>,
+    station_id_service_map: Mutex<HashMap<String, Arc<LocastService>>>,
     channel_remap: Option<HashMap<String, ChannelRemapEntry>>,
 }
 
 impl Multiplexer {
-    /// Create a new `Multiplexer` with a vector of `LocastServiceArcs` and a `Config`
-    pub fn new(services: Vec<LocastServiceArc>, config: Arc<Config>) -> MultiplexerArc {
+    /// Create a new `Multiplexer` with a vector of `Arc<LocastService>s` and a `Config`
+    pub fn new(services: Vec<Arc<LocastService>>, config: Arc<Config>) -> Arc<Multiplexer> {
         let channel_remap = match &config.remap_file {
             Some(f) => {
                 let file = File::open(f).unwrap();
@@ -37,7 +38,6 @@ impl Multiplexer {
     }
 }
 
-type MultiplexerArc = Arc<Multiplexer>;
 #[async_trait]
 impl StationProvider for Arc<Multiplexer> {
     /// Get the stream URL for a locast station id.
@@ -45,12 +45,7 @@ impl StationProvider for Arc<Multiplexer> {
         // Make sure the station_id_service_map is loaded. Feels wrong to do it like this though.. Needs refactoring.
         self.stations().await;
 
-        let service = match self
-            .station_id_service_map
-            .lock()
-            .await
-            .get(&id.to_owned())
-        {
+        let service = match self.station_id_service_map.lock().await.get(&id.to_owned()) {
             Some(s) => s.clone(),
             None => return Err(AppError::NotFound),
         };
@@ -135,7 +130,7 @@ impl StationProvider for Arc<Multiplexer> {
         "".to_owned()
     }
 
-    fn services(&self) -> Vec<LocastServiceArc> {
+    fn services(&self) -> Vec<Arc<LocastService>> {
         self.services.clone()
     }
 }

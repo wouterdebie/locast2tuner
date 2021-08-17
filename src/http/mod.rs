@@ -1,7 +1,7 @@
 mod templates;
 use crate::{
     config::Config,
-    service::{station::ChannelRemapEntry, stationprovider::StationProvider},
+    service::{station::ChannelRemapEntry, station_provider::StationProvider},
     utils::Or,
 };
 use actix_web::middleware::Logger;

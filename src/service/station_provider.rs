@@ -1,6 +1,6 @@
 use crate::errors::AppError;
 
-use super::{station::Stations, Geo, LocastServiceArc};
+use super::{station::Stations, Geo, LocastService};
 use async_trait::async_trait;
 use futures::lock::Mutex;
 use std::sync::Arc;
@@ -12,5 +12,5 @@ pub trait StationProvider {
     fn geo(&self) -> Arc<Geo>;
     fn uuid(&self) -> String;
     fn zipcode(&self) -> String;
-    fn services(&self) -> Vec<LocastServiceArc>;
+    fn services(&self) -> Vec<Arc<LocastService>>;
 }
