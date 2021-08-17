@@ -1,4 +1,4 @@
-# Integrating locast2tuner with Plex Media Server
+# Integrating with Plex Media Server
 
 [Plex Media Server](https://www.plex.tv/) (PMS) only supports [HDHomerun](https://www.silicondust.com/) mode which is supported by `locast2tuner`.  This guide will walk you through adding your working `locast2tuner` tuner to PMS.
 

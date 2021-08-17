@@ -1,4 +1,4 @@
-# Integrating locast2tuner with Emby
+# Integrating with Emby
 
 [Emby](https://emby.media/) supports both [HDHomerun](https://www.silicondust.com/) and m3u tuner modes, both of which are supported by `locast2tuner`.  This guide will walk you through adding your working `locast2tuner` tuner to Emby in m3u mode.
 

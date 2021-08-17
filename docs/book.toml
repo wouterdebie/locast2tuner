@@ -1,0 +1,48 @@
+[book]
+authors = ["Wouter de Bie"]
+language = "en"
+multilingual = false
+src = "src"
+title = "locast2tuner"
+
+[output.html]
+git-repository-url = "https://github.com/wouterdebie/locast2tuner"
+edit-url-template = "https://github.com/wouterdebie/locast2tuner/edit/gh-pages/{path}"
+
+[preprocessor.theme]
+# # enable pagetoc (toc on the right)
+# pagetoc                   = true
+
+# some variables related (defined in theme/css/variables.css)
+# `content-max-width` + `pagetoc-width` = 95% seems the best
+content-max-width        = "95%"
+# pagetoc-fontsize         = "14.5px"
+sidebar-width            = "300px"
+menu-bar-height          = "40px"   # memu-bar = the bar on the top
+page-padding             = "15px"
+mobile-content-max-width = "98%"
+
+# layout
+# content-padding           = "0 10px"
+# content-main-margin-left  = "2%"
+# content-main-margin-right = "2%"
+# nav-chapters-max-width    = "auto"
+# nav-chapters-min-width    = "auto"
+# chapter-line-height       = "2em"
+# section-line-height       = "1.5em"
+
+# modify some fontsizes
+# root-font-size    = "70%"    # control the main font-size
+# body-font-size    = "1.5rem"
+code-font-size    = "0.9em"
+sidebar-font-size = "0.9em"    # sidebar = toc on the left
+
+# modify some colors under ayu/coal/light/navy/rust theme
+coal-inline-code-color  = "#ffb454"
+light-inline-code-color = "#F42C4C"
+navy-inline-code-color  = "#ffb454"
+rust-inline-code-color  = "#F42C4C"
+light-links             = "#1f1fff"
+rust-links              = "#1f1fff"
+
+turn-off=true
