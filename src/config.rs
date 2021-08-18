@@ -70,15 +70,19 @@ impl Config {
 
         let mut conf = Self::default();
         let cfg = clap_conf::with_toml_env(&clap, &["/etc/locast2tuner/config"]);
+
         conf.username = cfg
             .grab()
             .arg("username")
+            .env("l2t_username")
             .conf("username")
             .done()
             .expect("Username required");
+
         conf.password = cfg
             .grab()
             .arg("password")
+            .env("l2t_password")
             .conf("password")
             .done()
             .expect("Password required");
@@ -86,83 +90,129 @@ impl Config {
         conf.bind_address = cfg
             .grab()
             .arg("bind_address")
+            .env("l2t_bind_address")
             .conf("bind_address")
             .def("127.0.0.1");
 
-        conf.port = cfg.grab().arg("port").conf("port").t_def::<u16>(6077);
-        conf.verbose = cfg.grab().arg("verbose").conf("verbose").t_def::<u8>(0);
-        conf.multiplex =
-            cfg.bool_flag("multiplex", Filter::Arg) || cfg.bool_flag("multiplex", Filter::Conf);
+        conf.port = cfg
+            .grab()
+            .arg("port")
+            .env("l2t_port")
+            .conf("port")
+            .t_def::<u16>(6077);
+
+        conf.verbose = cfg
+            .grab()
+            .arg("verbose")
+            .env("l2t_verbose")
+            .conf("verbose")
+            .t_def::<u8>(0);
+
+        conf.multiplex = cfg.bool_flag("multiplex", Filter::Arg)
+            || cfg.bool_flag("l2t_multiplex", Filter::Env)
+            || cfg.bool_flag("multiplex", Filter::Conf);
+
         conf.no_tvc_guide_station = cfg.bool_flag("no_tvc_guide_station", Filter::Arg)
+            || cfg.bool_flag("l2t_no_tvc_guide_station", Filter::Env)
             || cfg.bool_flag("no_tvc_guide_station", Filter::Conf);
 
         // First check if there's a comma-separated list from the command line
         conf.override_zipcodes = match cfg.grab().arg("override_zipcodes").done() {
             Some(o) => Some(o.split(',').map(|x| x.to_owned()).collect()),
-            None => {
-                match cfg.grab().conf("override_zipcodes").done() {
-                    // Overrides are defined as a regular string (old format)
-                    Some(o) => Some(o.split(',').map(|x| x.to_owned()).collect()),
-                    // Overrides are defined as an arra (new format)
-                    None => cfg
-                        .grab_multi()
-                        .conf("override_zipcodes")
-                        .done()
-                        .map(|o| o.collect()),
-                }
-            }
+            // Otherwise check for a comma-separated list from env variables
+            None => match cfg.grab().env("l2t_override_zipcodes").done() {
+                Some(eo) => Some(eo.split(',').map(|x| x.to_owned()).collect()),
+                // If nothing, get from config
+                None => cfg
+                    .grab_multi()
+                    .conf("override_zipcodes")
+                    .done()
+                    .map(|o| o.collect()),
+            },
         };
 
         conf.tuner_count = cfg
             .grab()
             .arg("tuner_count")
+            .env("l2t_tuner_count")
             .conf("tuner_count")
             .t_def::<u8>(3);
 
         conf.device_model = cfg
             .grab()
             .arg("device_model")
+            .env("l2t_device_model")
             .conf("device_model")
             .def("HDHR3-US");
 
         conf.device_firmware = cfg
             .grab()
             .arg("device_firmware")
+            .env("l2t_device_firmware")
             .conf("device_firmware")
             .def("hdhomerun3_atsc");
 
         conf.device_version = cfg
             .grab()
             .arg("device_version")
+            .env("l2t_device_version")
             .conf("device_version")
             .def("20170612");
 
         conf.disable_station_cache = cfg.bool_flag("disable_station_cache", Filter::Arg)
+            || cfg.bool_flag("l2t_disable_station_cache", Filter::Env)
             || cfg.bool_flag("disable_station_cache", Filter::Conf);
 
-        conf.syslog = cfg.bool_flag("syslog", Filter::Arg) || cfg.bool_flag("syslog", Filter::Conf);
-        conf.quiet = cfg.bool_flag("quiet", Filter::Arg) || cfg.bool_flag("quiet", Filter::Conf);
+        conf.syslog = cfg.bool_flag("syslog", Filter::Arg)
+            || cfg.bool_flag("l2t_syslog", Filter::Env)
+            || cfg.bool_flag("syslog", Filter::Conf);
+
+        conf.quiet = cfg.bool_flag("quiet", Filter::Arg)
+            || cfg.bool_flag("l2t_quiet", Filter::Env)
+            || cfg.bool_flag("quiet", Filter::Conf);
 
         conf.cache_timeout = cfg
             .grab()
             .arg("cache_timeout")
+            .env("l2t_cache_timeout")
             .conf("cache_timeout")
             .t_def::<u64>(3600);
 
-        conf.days = cfg.grab().arg("days").conf("days").t_def::<u8>(8);
+        conf.days = cfg
+            .grab()
+            .arg("days")
+            .env("l2t_days")
+            .conf("days")
+            .t_def::<u8>(8);
 
-        conf.remap = cfg.bool_flag("remap", Filter::Arg) || cfg.bool_flag("remap", Filter::Conf);
+        conf.remap = cfg.bool_flag("remap", Filter::Arg)
+            || cfg.bool_flag("l2t_remap", Filter::Env)
+            || cfg.bool_flag("remap", Filter::Conf);
+
         conf.rust_backtrace = cfg.bool_flag("rust_backtrace", Filter::Arg)
+            || cfg.bool_flag("l2t_rust_backtrace", Filter::Env)
             || cfg.bool_flag("rust_backtrace", Filter::Conf);
 
-        conf.logfile = cfg.grab().arg("logfile").conf("logfile").done();
-        conf.remap_file = cfg.grab().arg("remap_file").conf("remap_file").done();
+        conf.logfile = cfg
+            .grab()
+            .arg("logfile")
+            .env("l2t_logfile")
+            .conf("logfile")
+            .done();
+
+        conf.remap_file = cfg
+            .grab()
+            .arg("remap_file")
+            .env("lt2_remap_file")
+            .conf("remap_file")
+            .done();
 
         let default_cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
 
         let cache_directory_name = cfg
             .grab()
             .arg("cache_dir")
+            .env("l2t_cache_dir")
             .conf("cache_dir")
             .def(default_cache_dir.to_str().unwrap());
 

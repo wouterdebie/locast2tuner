@@ -1,7 +1,17 @@
 # Configuration
 
-`locast2tuner` parameters can be specified as either command line arguments or in a [TOML](https://github.com/toml-lang/toml) configuration file that can be specified using the `--config` argument.
+`locast2tuner` parameters can be specified as either command line arguments, as environment variables or in a [TOML](https://github.com/toml-lang/toml) configuration file that can be specified using the `--config` argument.
 
+> The precedence of parameters is **command line arguments** > **environment variables** > **config file**
+## Command line arguments
+In order to specify command line arguments, use `--argument value` (e.g. `--override_zipcodes 90210,30301`). Note that underscores are retained.
+
+## Environment variables
+Parameters can also be specified using environment variables. Environment variables are prefixed with `l2t_` and should be exported in the format `l2t_argument="value"` (e.g. `export l2t_override_zipcodes="90210,30301"`). Note that underscores and lowercase are retained.
+
+For boolean flags (like `l2t_multiplex`), use `true` or `false` as values.
+
+## Configuration file
 The configuration file format is:
 
 ```toml
@@ -19,8 +29,6 @@ verbose = 2
 multiplex = true
 override_zipcodes = ["85355", "90210"]
 ```
-
-In order to specify command line arguments, use `--<argument> <value>` (e.g. `--override_zipcodes 90210,30301`)
 
 ## Configuration options
 Please have a look at the [example config file](https://raw.githubusercontent.com/wouterdebie/locast2tuner/main/assets/config.example)
