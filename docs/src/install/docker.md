@@ -3,9 +3,9 @@
 
 A Docker image is available from `ghcr.io/wouterdebie/locast2tuner:latest` and is built from this [Dockerfile](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile).
 
-The container image is configured so all [configuration](../../configuration.md) parameters can be set as environment variables set at runtime.
+The container image is configured so that all [configuration](../../configuration.md) parameters can be set as environment variables set at runtime.
 
-> `l2t_username` and `l2t_password` are required parameters. The rest is optional.
+> `l2t_username` and `l2t_password` are required parameters. The rest are optional.
 
 ## Run using docker-compose (recommended)
 If you'd like to use Docker Compose you can use the sample [docker-compose.yml](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/docker-compose.yml) and edit it to match your settings:
@@ -27,7 +27,7 @@ curl -o docker-compose.yml \
 docker-compose up -d
 ```
 
-> The path `/app/config` is available in the container and can be mounted from the host in order to user things like `l2t_remap_file` or even `l2t_config`.
+> The path `/app/config` is available in the container and can be mounted from the host in order to use settings like `l2t_remap_file` or even `l2t_config`.
 
 ### Upgrading
 

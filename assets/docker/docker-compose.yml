@@ -6,9 +6,9 @@ services:
     environment:
       - l2t_username=username
       - l2t_password=password
-      - l2t_override_zipcodes=#####,#####
-      - l2t_multiplex=true
-      - l2t_remap=true
+#      - l2t_override_zipcodes=#####,##### (optional)
+#      - l2t_multiplex=true (optional)
+#      - l2t_remap=true (optional)
     ports:
       - 6077:6077
     restart: unless-stopped
