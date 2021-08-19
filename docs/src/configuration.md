@@ -1,6 +1,6 @@
 # Configuration
 
-`locast2tuner` parameters can be specified as either command line arguments, as environment variables or in a [TOML](https://github.com/toml-lang/toml) configuration file that can be specified using the `--config` argument.
+`locast2tuner` parameters can be specified as either command line arguments, as environment variables, or in a [TOML](https://github.com/toml-lang/toml) configuration file that can be specified using the `--config` argument.
 
 > The precedence of parameters is **command line arguments** > **environment variables** > **config file**
 ## Command line arguments

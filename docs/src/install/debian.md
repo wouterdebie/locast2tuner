@@ -15,7 +15,7 @@ sudo apt update
 sudo apt install locast2tuner
 ```
 
-Create a config file. Don't forget to edit the config file!
+Create a config file using the example. Don't forget to edit the config file!
 ```sh
 sudo cp /etc/locast2tuner/config.example /etc/locast2tuner/config
 # .. edit the config /etc/locast2tuner/config (e.g nano /etc/locast2tuner/config) ..
