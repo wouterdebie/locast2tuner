@@ -8,10 +8,10 @@ The container image is configured with the following parameters passed at runtim
 | Parameter | Function |
 | ---- | --- |
 | `-p 6077` | The port for the tuner access |
-| `-e L2TUSER=username` | Locast Username |
-| `-e L2TPASS=password` | Locast Password |
-| `-e L2TZIP=#####,#####` | Locast Zipcodes, zipcode in format: #####,#####,##### |
-| `-e multiplex=true` | Enables multiplexing |
+| `-e l2t_username=username` | Locast Username |
+| `-e l2t_username=username` | Locast Password |
+| `-e l2t_override_zipcodes=#####,#####` | Locast Zipcodes, zipcode in format: #####,#####,##### |
+| `-e l2t_multiplex=true` | Enables multiplexing |
 
 ## Running using docker-compose
 Compatible with docker-compose v2 schemas.
@@ -22,10 +22,10 @@ services:
     image: ghcr.io/wouterdebie/locast2tuner-unraid:latest
     container_name: locast2tuner
     environment:
-      - L2TUSER=username
-      - L2TPASS=password
-      - L2TZIP=#####,#####
-      - multiplex=true
+      - l2t_username=username
+      - l2t_username=username
+      - l2t_override_zipcodes=#####,#####
+      - l2t_multiplex=true
     ports:
       - 6077:6077
     restart: unless-stopped
