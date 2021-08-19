@@ -27,7 +27,7 @@ pub struct Config {
     pub port: u16,
     pub quiet: bool,
     pub remap: bool,
-    pub rewrite_endpoint: Option<String>,
+    pub skip_hls: bool,
     pub rust_backtrace: bool,
     pub syslog: bool,
     pub tuner_count: u8,
@@ -67,7 +67,7 @@ impl Config {
                 (@arg logfile: -l --logfile +takes_value "Log file location")
                 (@arg remap_file: --remap_file +takes_value "Remap file location")
                 (@arg no_tvc_guide_station: --no_tvc_guide_station "Don't show no_tvc_guide_station in tuner.m3u")
-                (@arg rewrite_endpoint: --rewrite_endpoint +takes_value "Rewrite the locastnet.org endpoint")
+                (@arg skip_hls: --skip_hls "Skip hls.locast.org, but use endpoints that are close to the broadcast")
 
         )
         .get_matches();
@@ -215,12 +215,9 @@ impl Config {
             .conf("remap_file")
             .done();
 
-        conf.rewrite_endpoint = cfg
-            .grab()
-            .arg("rewrite_endpoint")
-            .env("rewrite_endpoint")
-            .conf("rewrite_endpoint")
-            .done();
+        conf.skip_hls = cfg.bool_flag("skip_hls", Filter::Arg)
+            || cfg.bool_flag("l2t_skip_hls", Filter::Env)
+            || cfg.bool_flag("skip_hls", Filter::Conf);
 
         let default_cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
 

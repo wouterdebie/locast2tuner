@@ -12,6 +12,7 @@ use crate::{
 use async_trait::async_trait;
 use chrono::Utc;
 use futures::lock::Mutex;
+use lazy_static::lazy_static;
 use log::info;
 use regex::Regex;
 use reqwest::Url;
@@ -32,6 +33,11 @@ static DMA_URL: &str = "https://api.locastnet.org/api/watch/dma";
 static IP_URL: &str = "https://api.locastnet.org/api/watch/dma/ip";
 static STATIONS_URL: &str = "https://api.locastnet.org/api/watch/epg";
 static WATCH_URL: &str = "https://api.locastnet.org/api/watch/station";
+
+lazy_static! {
+    static ref REPLACEMENT_RE: Regex = Regex::new(r"\w+\.locastnet.org").unwrap();
+    static ref LOCATION_RE: Regex = Regex::new(r"hls.locastnet.org/proxy/(.+?)/").unwrap();
+}
 
 /// Struct that interacts with locast. Note that valid credentials are required
 #[derive(Debug)]
@@ -139,12 +145,20 @@ impl StationProvider for Arc<LocastService> {
         let value: HashMap<String, Value> = response.json().await.unwrap();
 
         let original_stream_url = value.get("streamUrl").unwrap().as_str().unwrap();
-        let stream_url = match &self.config.rewrite_endpoint {
-            Some(r) => {
-                let re = Regex::new(r"\w+\.locastnet.org").unwrap();
-                re.replace(original_stream_url, r).into_owned()
-            }
-            None => original_stream_url.to_owned(),
+
+        // Rewrite the stream URL if necessary
+        let stream_url = if self.config.skip_hls {
+            let location = LOCATION_RE
+                .captures(original_stream_url)
+                .unwrap()
+                .get(1)
+                .map_or("", |m| m.as_str());
+
+            REPLACEMENT_RE
+                .replace(original_stream_url, format!("{}.locastnet.org", location))
+                .into_owned()
+        } else {
+            original_stream_url.to_owned()
         };
 
         let m3u_data = get(&stream_url, None, 100)
