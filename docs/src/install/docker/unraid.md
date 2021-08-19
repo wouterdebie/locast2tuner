@@ -1,7 +1,7 @@
 # Unraid
 {{#include ../../locast_account.md}}
 
-Thanks to [RandomNinjaAtk](https://github.com/RandomNinjaAtk) there's a specific x86-64 Docker image for Unraid that is built using this [Dockerfile.unraid](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile.unraid). The big difference with the Docker image described above is that this image is configured using environment variables, rather than through an externally mounted configuration file.
+Thanks to [RandomNinjaAtk](https://github.com/RandomNinjaAtk) there's a specific x86-64 Docker image for Unraid The big difference with the Docker image described above is that this image is configured using environment variables, rather than through an externally mounted configuration file.
 
 The container image is configured with all [configuration](../../configuration.md) parameters as environment variables passed at runtime.
 
