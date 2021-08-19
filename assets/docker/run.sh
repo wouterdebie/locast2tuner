@@ -1,9 +1,11 @@
 #!/bin/bash
-if [[ -f "/app/config/config" ]]; then
-	config="--config /app/config/config"
+CONFIG_FILE="/app/config/config"
+
+if [[ -f "${CONFIG_FILE}" ]]; then
+	config="--config ${CONFIG_FILE}"
 elif [[ ! -z "$l2t_config" ]]; then
 	config="--config ${l2t_config}"
 fi
 
-/app/locast2tuner -b 0.0.0.0 -d 8 --tuner_count 4 $config
+/app/locast2tuner -b 0.0.0.0 $config
 exit $?

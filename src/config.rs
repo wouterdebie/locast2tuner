@@ -59,7 +59,7 @@ impl Config {
                 (@arg rust_backtrace: --rust_backtrace "Enable RUST_BACKTRACE=1")
                 (@arg syslog: --syslog "Log to syslogd")
                 (@arg quiet: --quiet "Don't log to terminal")
-                (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 3)")
+                (@arg tuner_count: --tuner_count +takes_value "Tuner count (default: 16)")
                 (@arg username: -U --username +takes_value "Locast username")
                 (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0)")
                 (@arg logfile: -l --logfile +takes_value "Log file location")

@@ -55,7 +55,7 @@ remap                   | Remap channel numbers when multiplexing. In case you o
 rewrite_endpoint        | Rewrite the endpoint that is used to stream from
 rust_backtrace          | Enable RUST_BACKTRACE=1. In error logs, you might see "run with `RUST_BACKTRACE=1` environment variable to display a backtrace". Instead of adding the environment variable, you can enable this behavior with `rust_backtrace` | false
 syslog                  | Log through syslogd | false
-tuner_count             | The amount of tuners that is communicated to Plex. This will limit the amount of streams that Plex will Note that this is not a limitation in `locast2tuner` | 3
+tuner_count             | The amount of tuners that is communicated to Plex. This will limit the amount of streams that Plex will Note that this is not a limitation in `locast2tuner` | 16
 verbose                 | Verbosity. 0 = Info, 1 = Info + HTTP request lgos, 2 = Debug, 3 = Trace. In error logs, you might see "run with `RUST_BACKTRACE=1` environment variable to display a backtrace". Setting the verbosity to 2 or 3 will also include the backtrace | 0
 
 ## Displaying running config
