@@ -26,6 +26,7 @@ pub struct Config {
     pub port: u16,
     pub quiet: bool,
     pub remap: bool,
+    pub rewrite_endpoint: Option<String>,
     pub rust_backtrace: bool,
     pub syslog: bool,
     pub tuner_count: u8,
@@ -64,6 +65,7 @@ impl Config {
                 (@arg logfile: -l --logfile +takes_value "Log file location")
                 (@arg remap_file: --remap_file +takes_value "Remap file location")
                 (@arg no_tvc_guide_station: --no_tvc_guide_station "Don't show no_tvc_guide_station in tuner.m3u")
+                (@arg rewrite_endpoint: --rewrite_endpoint +takes_value "Rewrite the locastnet.org endpoint")
 
         )
         .get_matches();
@@ -205,6 +207,13 @@ impl Config {
             .arg("remap_file")
             .env("lt2_remap_file")
             .conf("remap_file")
+            .done();
+
+        conf.rewrite_endpoint = cfg
+            .grab()
+            .arg("rewrite_endpoint")
+            .env("rewrite_endpoint")
+            .conf("rewrite_endpoint")
             .done();
 
         let default_cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
