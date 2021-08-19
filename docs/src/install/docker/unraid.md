@@ -20,6 +20,7 @@ services:
       - l2t_password=password
       - l2t_override_zipcodes=#####,#####
       - l2t_multiplex=true
+      - l2t_remap=true
     ports:
       - 6077:6077
     restart: unless-stopped
@@ -36,5 +37,6 @@ docker create \
   -e l2t_password=password \
   -e l2t_override_zipcodes=#####,##### \
   -e l2t_multiplex=true \
+  -e l2t_remap=true \
   ghcr.io/wouterdebie/locast2tuner-unraid:latest
 ```
