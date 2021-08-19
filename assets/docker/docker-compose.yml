@@ -1,10 +1,14 @@
-version: '3'
+version: "3"
 services:
   locast2tuner:
     image: ghcr.io/wouterdebie/locast2tuner:latest
     container_name: locast2tuner
-    volumes:
-      - ./.locast2tuner:/app/config
+    environment:
+      - l2t_username=username
+      - l2t_password=password
+      - l2t_override_zipcodes=#####,#####
+      - l2t_multiplex=true
+      - l2t_remap=true
     ports:
       - 6077:6077
     restart: unless-stopped

@@ -5,8 +5,6 @@
   - [Ubuntu/Debian](./install/debian.md)
   - [MacOS](./install/macos.md)
   - [Docker](./install/docker.md)
-    - [Regular](./install/docker/regular.md)
-    - [Unraid](./install/docker/unraid.md)
   - [Source](./install/source.md)
 - [Configuration](./configuration.md)
 - [Advanced Topics](./advanced.md)
