@@ -3,15 +3,9 @@
 
 Thanks to [RandomNinjaAtk](https://github.com/RandomNinjaAtk) there's a specific x86-64 Docker image for Unraid that is built using this [Dockerfile.unraid](https://github.com/wouterdebie/locast2tuner/blob/main/assets/docker/Dockerfile.unraid). The big difference with the Docker image described above is that this image is configured using environment variables, rather than through an externally mounted configuration file.
 
-The container image is configured with the following parameters passed at runtime:
+The container image is configured with all [configuration](../../configuration.md) parameters as environment variables passed at runtime.
 
-| Parameter | Function |
-| ---- | --- |
-| `-p 6077` | The port for the tuner access |
-| `-e l2t_username=username` | Locast Username |
-| `-e l2t_password=password` | Locast Password |
-| `-e l2t_override_zipcodes=#####,#####` | Locast Zipcodes, zipcode in format: #####,#####,##### |
-| `-e l2t_multiplex=true` | Enables multiplexing |
+> `l2t_username` and `l2t_password` are required parameters. The rest is optional.
 
 ## Running using docker-compose
 Compatible with docker-compose v2 schemas.
