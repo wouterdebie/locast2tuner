@@ -38,9 +38,9 @@ services:
 docker create \
   --name=locast2tuner \
   -p 6077 \
-  -e L2TUSER=username \
-  -e L2TPASS=password \
-  -e L2TZIP=#####,##### \
-  -e multiplex=true \
+  -e l2t_username=username \
+  -e l2t_password=password \
+  -e l2t_override_zipcodes=#####,##### \
+  -e l2t_multiplex=true \
   ghcr.io/wouterdebie/locast2tuner-unraid:latest
 ```
