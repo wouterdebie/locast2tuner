@@ -138,8 +138,16 @@ impl StationProvider for Arc<LocastService> {
 
         let value: HashMap<String, Value> = response.json().await.unwrap();
 
-        let stream_url = value.get("streamUrl").unwrap().as_str().unwrap();
-        let m3u_data = get(stream_url, None, 100)
+        let original_stream_url = value.get("streamUrl").unwrap().as_str().unwrap();
+        let stream_url = match &self.config.rewrite_endpoint {
+            Some(r) => {
+                let re = Regex::new(r"\w+\.locastnet.org").unwrap();
+                re.replace(original_stream_url, r).into_owned()
+            }
+            None => original_stream_url.to_owned(),
+        };
+
+        let m3u_data = get(&stream_url, None, 100)
             .await
             .unwrap()
             .text()
@@ -152,7 +160,7 @@ impl StationProvider for Arc<LocastService> {
         match master_playlist {
             Ok(mp) => Ok(Mutex::new(highest_quality_url(
                 mp.variant_streams,
-                stream_url,
+                &stream_url,
             ))),
             Err(_) => Ok(Mutex::new(stream_url.to_owned())),
         }

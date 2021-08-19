@@ -15,6 +15,7 @@
   - [Tuner Emulation](./advanced/tuner_emulation.md)
   - [EPG](./advanced/epg.md)
   - [Remapping](./advanced/remapping.md)
+  - [Rewrite endpoint](./advanced/rewrite.md)
   - [Logging](./advanced/logging.md)
   - [Debugging](./advanced/debugging.md)
 - [Quickstart Guides](./quickstart.md)
