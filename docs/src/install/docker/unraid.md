@@ -9,7 +9,7 @@ The container image is configured with the following parameters passed at runtim
 | ---- | --- |
 | `-p 6077` | The port for the tuner access |
 | `-e l2t_username=username` | Locast Username |
-| `-e l2t_username=username` | Locast Password |
+| `-e l2t_password=password` | Locast Password |
 | `-e l2t_override_zipcodes=#####,#####` | Locast Zipcodes, zipcode in format: #####,#####,##### |
 | `-e l2t_multiplex=true` | Enables multiplexing |
 
