@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv bash
+#!/bin/bash
 if [[ -f "/app/config/config" ]]; then
 	config="--config /app/config/config"
 elif [[ ! -z "$l2t_config" ]]; then
