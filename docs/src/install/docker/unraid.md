@@ -23,7 +23,7 @@ services:
     container_name: locast2tuner
     environment:
       - l2t_username=username
-      - l2t_username=username
+      - l2t_password=password
       - l2t_override_zipcodes=#####,#####
       - l2t_multiplex=true
     ports:
