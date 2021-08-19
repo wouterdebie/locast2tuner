@@ -19,6 +19,7 @@ pub struct Config {
     pub device_model: String,
     pub device_version: String,
     pub disable_station_cache: bool,
+    pub disable_donation_check: bool,
     pub multiplex: bool,
     pub no_tvc_guide_station: bool,
     pub override_zipcodes: Option<Vec<String>>,
@@ -51,6 +52,7 @@ impl Config {
                 (@arg device_model: --device_model +takes_value "Device model (default: HDHR3-US)")
                 (@arg device_version: --device_version +takes_value "Device version (default: 20170612)")
                 (@arg disable_station_cache: --disable_station_cache "Disable stations cache")
+                (@arg disable_donation_check: --disable_donation_check "Disable the donation check (use for Locast Cares accounts")
                 (@arg multiplex: -m --multiplex "Multiplex devices")
                 (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override zipcodes")
                 (@arg password: -P --password +takes_value "Locast password")
@@ -164,6 +166,10 @@ impl Config {
         conf.disable_station_cache = cfg.bool_flag("disable_station_cache", Filter::Arg)
             || cfg.bool_flag("l2t_disable_station_cache", Filter::Env)
             || cfg.bool_flag("disable_station_cache", Filter::Conf);
+
+        conf.disable_donation_check = cfg.bool_flag("disable_donation_check", Filter::Arg)
+            || cfg.bool_flag("l2t_disable_donation_check", Filter::Env)
+            || cfg.bool_flag("disable_donation_check", Filter::Conf);
 
         conf.syslog = cfg.bool_flag("syslog", Filter::Arg)
             || cfg.bool_flag("l2t_syslog", Filter::Env)

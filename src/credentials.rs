@@ -24,7 +24,7 @@ impl LocastCredentials {
     // Construct a new object
     pub async fn new(config: Arc<Config>) -> LocastCredentials {
         let token = login(&(config.username), &(config.password)).await;
-        validate_user(&token).await;
+        validate_user(&config, &token).await;
         LocastCredentials {
             config,
             token: Arc::new(Mutex::new(token)),
@@ -85,7 +85,7 @@ struct UserInfo {
 
 // Validate the locast user and make sure the user has donated and the donation didn't expire.
 // If invalid, panic.
-async fn validate_user(token: &str) {
+async fn validate_user(config: &Arc<Config>, token: &str) {
     let response = crate::utils::get(USER_URL, Some(token), 100).await;
     let text = response.unwrap().text().await.unwrap();
     let user_info: Result<UserInfo, serde_json::Error> = serde_json::from_str(&text);
@@ -97,7 +97,9 @@ async fn validate_user(token: &str) {
             panic!("Error while validating user: {}", e)
         }
         Ok(u) => {
-            if !u.didDonate {
+            if config.disable_donation_check {
+                warn!("Donation check disabled! Only use this with a valid Locast Cares account!")
+            } else if !u.didDonate {
                 panic!("User didn't donate! Make sure you have an active donation at locast.org!")
             } else if now > u.donationExpire.unwrap() / 1000 {
                 panic!("Donation expired! Make sure you have an active donation at locast.org!")

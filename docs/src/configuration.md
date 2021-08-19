@@ -45,6 +45,7 @@ device_firmware         | Device firmware that is reported to Plex or Emby | hom
 device_model            | Device model that is reported to Plex or Emby | HDHR3-US
 device_version          | Device version that is reported to Plex or Emby | 20170612
 disable_station_cache   | Disable caching of station information. By default `locast2tuner` caches station information for an hour (see `cache_timeout`). By disabling the cache, every request for station information will lead to a call to locast.org. Normally you shouldn't have to disable the cache | false
+disable_donation_check  | Disable the donation check. This doesn't mean you can watch without a donation, but the donation check fails for Locast Cares accounts | false
 logfile                 | Log to a specific file | By default `locast2tuner` will not log to a file
 multiplex               | Normally, when you override multiple zip codes, `locast2tuner` starts multiple instances (see "bind_address"), but with "multiplex = true", stations from multiple locations will be available through a single instance | false
 no_tvc_guide_station    | Don't include `tvc_guide_station` in `tuner.m3u`. Having this field sometimes breaks things in Channels DVR. | false
