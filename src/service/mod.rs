@@ -34,11 +34,6 @@ static IP_URL: &str = "https://api.locastnet.org/api/watch/dma/ip";
 static STATIONS_URL: &str = "https://api.locastnet.org/api/watch/epg";
 static WATCH_URL: &str = "https://api.locastnet.org/api/watch/station";
 
-lazy_static! {
-    static ref REPLACEMENT_RE: Regex = Regex::new(r"\w+\.locastnet.org").unwrap();
-    static ref LOCATION_RE: Regex = Regex::new(r"hls.locastnet.org/proxy/(.+?)/").unwrap();
-}
-
 /// Struct that interacts with locast. Note that valid credentials are required
 #[derive(Debug)]
 pub struct LocastService {
@@ -147,19 +142,12 @@ impl StationProvider for Arc<LocastService> {
         let original_stream_url = value.get("streamUrl").unwrap().as_str().unwrap();
 
         // Rewrite the stream URL if necessary
-        let stream_url = if self.config.skip_hls && original_stream_url.contains("hls.locastnet.org") {
-            let location = LOCATION_RE
-                .captures(original_stream_url)
-                .unwrap()
-                .get(1)
-                .map_or("", |m| m.as_str());
-
-            REPLACEMENT_RE
-                .replace(original_stream_url, format!("{}.locastnet.org", location))
-                .into_owned()
-        } else {
-            original_stream_url.to_owned()
-        };
+        let stream_url =
+            if self.config.skip_hls && original_stream_url.contains("hls.locastnet.org") {
+                rewrite_hls_stream(original_stream_url)
+            } else {
+                original_stream_url.to_owned()
+            };
 
         let m3u_data = get(&stream_url, None, 100)
             .await
@@ -343,6 +331,24 @@ fn detect_callsign(input: &str) -> Option<(&str, &str)> {
     let call_sign = caps.get(1).map_or("default", |m| m.as_str());
     let sub_channel = caps.get(2).map_or("default", |m| m.as_str());
     Some((call_sign, sub_channel))
+}
+
+lazy_static! {
+    static ref LOCATION_RE: Regex = Regex::new(r"hls.locastnet.org/proxy/(.+?)/").unwrap();
+}
+
+/// Rewrite hls.locastnet.org/proxy/XXX to XXX.locast.net.org/proxy/XXX
+fn rewrite_hls_stream(original_stream_url: &str) -> String {
+    let location = LOCATION_RE
+        .captures(original_stream_url)
+        .unwrap()
+        .get(1)
+        .map_or("", |m| m.as_str());
+
+    original_stream_url.replace(
+        "hls.locastnet.org",
+        format!("{}.locastnet.org", location).as_str(),
+    )
 }
 
 #[allow(non_snake_case)]
