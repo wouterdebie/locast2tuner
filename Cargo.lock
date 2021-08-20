@@ -1437,7 +1437,7 @@ checksum = "84f9a2d3e27ce99ce2c3aad0b09b1a7b916293ea9b2bf624c13fe646fadd8da4"
 
 [[package]]
 name = "locast2tuner"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "actix-rt",
  "actix-web",
