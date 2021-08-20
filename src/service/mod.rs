@@ -147,7 +147,7 @@ impl StationProvider for Arc<LocastService> {
         let original_stream_url = value.get("streamUrl").unwrap().as_str().unwrap();
 
         // Rewrite the stream URL if necessary
-        let stream_url = if self.config.skip_hls {
+        let stream_url = if self.config.skip_hls && original_stream_url.contains("hls.locastnet.org") {
             let location = LOCATION_RE
                 .captures(original_stream_url)
                 .unwrap()
