@@ -1,5 +1,5 @@
 # Multiplexing
-`locast2tuner` normally starts an HTTP instance for each Tuner, starting at `port` (default `6077`). But with the option `--multiplex`, it will start a single HTTP interface multiplexing all Tuners through one interface for both streaming and EPG.
+`locast2tuner` normally starts an HTTP instance for each Tuner, starting at `port` (default `6077`). But with the option `multiplex`, it will start a single HTTP interface multiplexing all Tuners through one interface for both streaming and EPG.
 
 For example: if you use `--multiplex --override_zipcodes=90210,55111`, all channels from both ZIP codes will be available, but multiplexed at `http://localhost:6077`.
 

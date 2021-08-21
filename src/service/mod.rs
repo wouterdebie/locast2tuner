@@ -357,8 +357,10 @@ pub struct Geo {
     pub name: String,
     pub active: bool,
     pub timezone: Option<String>,
+    pub used_zipcode: Option<String>,
 }
 async fn geo_from(zipcodes: &Option<Vec<String>>) -> Geo {
+    // Get geo either from zip codes or from our IP address
     let mut geo = match zipcodes {
         Some(z) => match valid_geo(z).await {
             Some(g) => g,
@@ -381,8 +383,11 @@ async fn valid_geo(zipcodes: &[String]) -> Option<Geo> {
     for zipcode in zipcodes {
         let uri = format!("{}/zip/{}", DMA_URL, zipcode);
         match get_geo(&uri).await {
-            Ok(g) if g.active => return Some(g),
-            _ => {},
+            Ok(mut g) if g.active => {
+                g.used_zipcode = Some(zipcode.clone());
+                return Some(g);
+            }
+            _ => {}
         };
     }
     None

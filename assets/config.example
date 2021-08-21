@@ -10,10 +10,16 @@ password = "very_secret_password"
 
 ## What zip codes to override. By default this is not set and locast2tuner will use your external IP
 ## to determine your location.
-#
-# Please see https://www.locast.org/dma for a current map of the supported regions
-#
-#override_zipcodes = ["98101","94102","90210","85006","80019","57701","57103","51054","55111","75001","77002","60018","46077","30301","33602","33125","33403","20002","21206","19103","18505","10009","02115","53558","32789","28102","95605","44102","43016","48201","53202","97086","00909","27545","37660","15120"]
+## Please see https://www.locast.org/dma for a current map of the supported regions.
+# override_zipcodes = ["98101","94102","90210","85006","80019","57701","57103","51054","55111","75001","77002","60018","46077","30301","33602","33125","33403","20002","21206","19103","18505","10009","02115","53558","32789","28102","95605","44102","43016","48201","53202","97086","00909","27545","37660","15120"]
+
+## Override the locations using cities. This has to be in the format of "City, State Abbreviation"
+## Please see https://www.locast.org/dma for a current map of the supported regions.
+# override_cities = ["Los Angeles, CA", "Portland, OR"]
+
+## Pick a random zip code when using override_cities. There are multiple zip codes per city, and normally locast2tuner
+## picks the first valid one. With random_zipcode a random valid zip code will be picked.
+# random_zipcode = false
 
 ## How many days of EPG data to fetch. The default is 8, which is the maximum of data locast.org provides
 # days = 8
@@ -97,3 +103,8 @@ password = "very_secret_password"
 
 ## Don't include tvc_guide_station in tuner.m3u. Having this field sometimes breaks things in Channels DVR.
 # no_tvc_guide_station = false
+
+## hls.locastnet.org is a proxy host that clients often connect to, rather than the local locast node.
+## This might not always be the best choice. When you experience stutter and buffering, you might want to
+## enable this option to directly connect to the node closest to the actual stream.
+# skip_hls = false

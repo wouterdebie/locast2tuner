@@ -119,6 +119,7 @@ impl StationProvider for Arc<Multiplexer> {
             name: "Multiplexer".to_owned(),
             active: true,
             timezone: None,
+            used_zipcode: None,
         })
     }
 

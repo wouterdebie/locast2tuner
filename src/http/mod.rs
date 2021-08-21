@@ -92,11 +92,11 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
         info!("Tuners:");
         let mut table = Table::new();
         table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-        table.set_titles(row!["City", "Zip codes", "DMA", "UUID", "Timezone"]);
+        table.set_titles(row!["City", "Zip code", "DMA", "UUID", "Timezone"]);
         for s in reporting_services[0].services() {
             table.add_row(row![
                 s.geo().name,
-                zip_code_fmt(s.zipcodes()),
+                s.geo().used_zipcode.as_ref().unwrap(),
                 s.geo().DMA,
                 s.uuid(),
                 s.geo().timezone.as_ref().unwrap_or(&"".to_string())
@@ -121,7 +121,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
         info!("Tuners:");
         let mut table = Table::new();
         table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-        table.set_titles(row!["City", "Zip codes", "DMA", "UUID", "Timezone", "URL"]);
+        table.set_titles(row!["City", "Zip code", "DMA", "UUID", "Timezone", "URL"]);
         for is in reporting_services.iter().enumerate() {
             let (i, s) = is;
             let port = config.port + i as u16;
@@ -129,7 +129,7 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
 
             table.add_row(row![
                 s.geo().name,
-                zip_code_fmt(s.zipcodes()),
+                s.geo().used_zipcode.as_ref().unwrap(),
                 s.geo().DMA,
                 s.uuid(),
                 s.geo().timezone.as_ref().unwrap_or(&"".to_string()),
@@ -144,18 +144,6 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
     info!("locast2tuner started..");
     future::try_join_all(servers).await?;
     Ok(())
-}
-
-fn zip_code_fmt(zipcodes: Vec<String>) -> String {
-    if zipcodes.len() > 3 {
-        format!(
-            "{}, ... (+{})",
-            zipcodes[..3].join(", "),
-            zipcodes.len() - 3
-        )
-    } else {
-        zipcodes.join(", ")
-    }
 }
 
 async fn device_xml<T: 'static + StationProvider>(req: HttpRequest) -> HttpResponse {

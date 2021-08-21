@@ -31,6 +31,7 @@ pub struct Config {
     pub password: String,
     pub port: u16,
     pub quiet: bool,
+    pub random_zipcode: bool,
     pub remap: bool,
     pub skip_hls: bool,
     pub rust_backtrace: bool,
@@ -59,8 +60,8 @@ impl Config {
                 (@arg disable_station_cache: --disable_station_cache "Disable stations cache")
                 (@arg disable_donation_check: --disable_donation_check "Disable the donation check (use for Locast Cares accounts")
                 (@arg multiplex: -m --multiplex "Multiplex devices")
-                (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override zipcodes")
-                (@arg override_cities: --override_cities +takes_value "Override zipcodes")
+                (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override locations using zipcodes")
+                (@arg override_cities: --override_cities +takes_value "Override locations using cities")
                 (@arg password: -P --password +takes_value "Locast password")
                 (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
                 (@arg remap: -r --remap "Remap channels when multiplexed")
@@ -74,6 +75,7 @@ impl Config {
                 (@arg remap_file: --remap_file +takes_value "Remap file location")
                 (@arg no_tvc_guide_station: --no_tvc_guide_station "Don't show no_tvc_guide_station in tuner.m3u")
                 (@arg skip_hls: --skip_hls "Skip hls.locast.org, but use endpoints that are close to the broadcast")
+                (@arg random_zipcode: --random_zipcode "Randomize city zip codes when using override_cities")
 
         )
         .get_matches();
@@ -156,6 +158,10 @@ impl Config {
             },
         };
 
+        conf.random_zipcode = cfg.bool_flag("random_zipcode", Filter::Arg)
+            || env_true_flag(&cfg, "l2t_random_zipcode")
+            || cfg.bool_flag("random_zipcode", Filter::Conf);
+
         conf.tuner_count = cfg
             .grab()
             .arg("tuner_count")
@@ -193,12 +199,10 @@ impl Config {
             || cfg.bool_flag("disable_donation_check", Filter::Conf);
 
         conf.syslog = cfg.bool_flag("syslog", Filter::Arg)
-            || cfg.bool_flag("l2t_syslog", Filter::Env)
             || env_true_flag(&cfg, "l2t_syslog")
             || cfg.bool_flag("syslog", Filter::Conf);
 
         conf.quiet = cfg.bool_flag("quiet", Filter::Arg)
-            || cfg.bool_flag("l2t_quiet", Filter::Env)
             || env_true_flag(&cfg, "l2t_quiet")
             || cfg.bool_flag("quiet", Filter::Conf);
 
@@ -239,7 +243,6 @@ impl Config {
             .done();
 
         conf.skip_hls = cfg.bool_flag("skip_hls", Filter::Arg)
-            || cfg.bool_flag("l2t_skip_hls", Filter::Env)
             || env_true_flag(&cfg, "l2t_skip_hls")
             || cfg.bool_flag("skip_hls", Filter::Conf);
 

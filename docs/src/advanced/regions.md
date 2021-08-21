@@ -3,10 +3,15 @@
 
 ## Location overrides
 By default `locast2tuner` uses your IP address to determine your location, but it also allows you to override the [locast.org](https://locast.org) location you're creating a tuner for. This is done by mapping a zip code to geographical coordinates.
+Check [locast.org](https://locast.org) for an up-to-date list of available locations.
 
-As a command line argument, `override_zipcodes` takes a comma separated list of ZIP codes as an argument. E.g. `--override_zipcodes 90210,55111` for Los Angeles and Minneapolis.
+There are two [configuration](../configuration.md) options available to override the location:
 
-Or you can use `override_zipcodes` in a configuration file as an array of strings. E.g. `override_zipcodes = ["90210", "55111"]`.
+| Option | Description | Examples |
+| - | - | - |
+|`override_zipcodes` | Use a comma separated list of zip codes | `--override_zipcodes "90210,55111"`(cli)<br>`$l2t_override_zipcodes="90210,55111"` (env vars)<br>`override_zipcodes = ["90210", "55111"]`(config file)
+|`override_cities` | Use a pipe separated list of "City, State" | `--override_cities "Los Angeles, CA\|Portland, OR"`(cli)<br>`$l2t_override_cities="Los Angeles, CA\|Portland, OR"` (env vars)<br>`override_cities = ["Los Angeles, CA", "Portland, OR"]`(config file)
+
 
 A [file with all available locast regions](https://github.com/wouterdebie/locast2tuner/blob/main/assets/regions) is included in the `locast2tuner` distribution.
 

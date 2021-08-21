@@ -10,6 +10,8 @@ mod logging;
 mod service;
 mod utils;
 use itertools::Itertools;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use service::multiplexer::Multiplexer;
 use simple_error::SimpleError;
 use std::env;
@@ -80,13 +82,17 @@ async fn main() -> Result<(), SimpleError> {
     // Create Locast Services
     let services = if let Some(zipcodes) = zipcodes {
         let services = zipcodes
-            .iter()
-            .map(|z| {
+            .into_iter()
+            .map(|mut z| {
+                if conf.random_zipcode {
+                    z.shuffle(&mut thread_rng())
+                }
+
                 service::LocastService::new(
                     conf.clone(),
                     credentials.clone(),
                     fcc_facilities.clone(),
-                    Some(z.to_owned()),
+                    Some(z),
                 )
             })
             .collect_vec();
