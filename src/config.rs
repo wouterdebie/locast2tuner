@@ -1,3 +1,6 @@
+use clap_conf::convert::Holder;
+use clap_conf::convert::Localizer;
+use clap_conf::env::Enver;
 use clap_conf::*;
 use serde::Serialize;
 use simple_error::SimpleError;
@@ -6,6 +9,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use toml::Value;
 use uuid::Uuid;
 #[derive(Default, Debug, Serialize, Clone)]
 pub struct Config {
@@ -115,11 +119,11 @@ impl Config {
             .t_def::<u8>(0);
 
         conf.multiplex = cfg.bool_flag("multiplex", Filter::Arg)
-            || cfg.bool_flag("l2t_multiplex", Filter::Env)
+            || env_true_flag(&cfg, "l2t_multiplex")
             || cfg.bool_flag("multiplex", Filter::Conf);
 
         conf.no_tvc_guide_station = cfg.bool_flag("no_tvc_guide_station", Filter::Arg)
-            || cfg.bool_flag("l2t_no_tvc_guide_station", Filter::Env)
+            || env_true_flag(&cfg, "l2t_no_tvc_guide_station")
             || cfg.bool_flag("no_tvc_guide_station", Filter::Conf);
 
         // First check if there's a comma-separated list from the command line
@@ -181,19 +185,21 @@ impl Config {
             .def("20170612");
 
         conf.disable_station_cache = cfg.bool_flag("disable_station_cache", Filter::Arg)
-            || cfg.bool_flag("l2t_disable_station_cache", Filter::Env)
+            || env_true_flag(&cfg, "l2t_disable_station_cache")
             || cfg.bool_flag("disable_station_cache", Filter::Conf);
 
         conf.disable_donation_check = cfg.bool_flag("disable_donation_check", Filter::Arg)
-            || cfg.bool_flag("l2t_disable_donation_check", Filter::Env)
+            || env_true_flag(&cfg, "l2t_disable_donation_check")
             || cfg.bool_flag("disable_donation_check", Filter::Conf);
 
         conf.syslog = cfg.bool_flag("syslog", Filter::Arg)
             || cfg.bool_flag("l2t_syslog", Filter::Env)
+            || env_true_flag(&cfg, "l2t_syslog")
             || cfg.bool_flag("syslog", Filter::Conf);
 
         conf.quiet = cfg.bool_flag("quiet", Filter::Arg)
             || cfg.bool_flag("l2t_quiet", Filter::Env)
+            || env_true_flag(&cfg, "l2t_quiet")
             || cfg.bool_flag("quiet", Filter::Conf);
 
         conf.cache_timeout = cfg
@@ -211,11 +217,11 @@ impl Config {
             .t_def::<u8>(8);
 
         conf.remap = cfg.bool_flag("remap", Filter::Arg)
-            || cfg.bool_flag("l2t_remap", Filter::Env)
+            || env_true_flag(&cfg, "l2t_remap")
             || cfg.bool_flag("remap", Filter::Conf);
 
         conf.rust_backtrace = cfg.bool_flag("rust_backtrace", Filter::Arg)
-            || cfg.bool_flag("l2t_rust_backtrace", Filter::Env)
+            || env_true_flag(&cfg, "l2t_rust_backtrace")
             || cfg.bool_flag("rust_backtrace", Filter::Conf);
 
         conf.logfile = cfg
@@ -234,6 +240,7 @@ impl Config {
 
         conf.skip_hls = cfg.bool_flag("skip_hls", Filter::Arg)
             || cfg.bool_flag("l2t_skip_hls", Filter::Env)
+            || env_true_flag(&cfg, "l2t_skip_hls")
             || cfg.bool_flag("skip_hls", Filter::Conf);
 
         let default_cache_dir = dirs::home_dir().unwrap().join(Path::new(".locast2tuner"));
@@ -285,4 +292,12 @@ fn generate_and_store_uid(path: PathBuf) -> String {
         .expect("Unable to write uuid file");
 
     new_uuid
+}
+
+fn env_true_flag(
+    cfg: &Holder<Holder<Enver, &ArgMatches, String, &str>, Localizer<Value>, String, String>,
+    env_var: &str,
+) -> bool {
+    let m = cfg.grab().env(env_var).done();
+    m.is_some() && m.unwrap() == "true"
 }
