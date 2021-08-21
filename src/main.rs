@@ -57,16 +57,36 @@ async fn main() -> Result<(), SimpleError> {
     // Load FCC facilities
     let fcc_facilities = Arc::new(fcc_facilities::FCCFacilities::new(conf.clone()).await);
 
+    let zipcodes = if let Some(override_zipcodes) = conf.override_zipcodes.clone() {
+        Some(vec![override_zipcodes])
+    } else if let Some(cities) = &conf.override_cities {
+        let z = cities
+            .iter()
+            .map(|c| match zip_codes_plus::by_city(c) {
+                Some(z) => z
+                    .iter()
+                    .filter(|r| matches!(r.zip_code_type, zip_codes_plus::Type::Standard))
+                    .map(|r| r.zip_code.to_string())
+                    .collect::<Vec<String>>(),
+                None => panic!("Unknown city: {}", c),
+            })
+            .collect();
+
+        Some(z)
+    } else {
+        None
+    };
+
     // Create Locast Services
-    let services = if let Some(zipcodes) = &conf.override_zipcodes {
+    let services = if let Some(zipcodes) = zipcodes {
         let services = zipcodes
             .iter()
-            .map(|x| {
+            .map(|z| {
                 service::LocastService::new(
                     conf.clone(),
                     credentials.clone(),
                     fcc_facilities.clone(),
-                    Some(x.to_owned()),
+                    Some(z.to_owned()),
                 )
             })
             .collect_vec();

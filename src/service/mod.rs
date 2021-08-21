@@ -15,7 +15,7 @@ use futures::lock::Mutex;
 use lazy_static::lazy_static;
 use log::info;
 use regex::Regex;
-use reqwest::Url;
+use reqwest::{Error, Url};
 use serde::Deserialize;
 use serde_json::Value;
 use std::{
@@ -40,7 +40,7 @@ pub struct LocastService {
     config: Arc<Config>,
     credentials: Arc<LocastCredentials>,
     fcc_facilities: Arc<FCCFacilities>,
-    pub zipcode: Option<String>,
+    pub zipcodes: Option<Vec<String>>,
     pub geo: Arc<Geo>,
     pub uuid: String,
     stations: Stations,
@@ -52,13 +52,10 @@ impl LocastService {
         config: Arc<Config>,
         credentials: Arc<LocastCredentials>,
         fcc_facilities: Arc<FCCFacilities>,
-        zipcode: Option<String>,
+        zipcodes: Option<Vec<String>>,
     ) -> Arc<LocastService> {
         // Figure out what location we are serving
-        let geo = Arc::new(geo_from(&zipcode).await);
-        if !geo.active {
-            panic!("{} not active", geo.name)
-        }
+        let geo = Arc::new(geo_from(&zipcodes).await);
 
         // Generate a UUID for this specific service
         let uuid = uuid::Uuid::new_v5(
@@ -82,7 +79,7 @@ impl LocastService {
             config,
             credentials,
             fcc_facilities,
-            zipcode,
+            zipcodes,
             geo,
             uuid,
             stations,
@@ -179,11 +176,11 @@ impl StationProvider for Arc<LocastService> {
     }
 
     /// Returns the zipcode (if set) of this service
-    fn zipcode(&self) -> String {
-        if let Some(z) = &self.zipcode {
+    fn zipcodes(&self) -> Vec<String> {
+        if let Some(z) = &self.zipcodes {
             z.to_owned()
         } else {
-            "".to_owned()
+            vec![]
         }
     }
 
@@ -230,8 +227,8 @@ impl fmt::Display for LocastService {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "LocastService{{ zipcode: {:?}, uuid: {:?}, geo: {:?} }}",
-            self.zipcode, self.uuid, self.geo
+            "LocastService{{ zipcodes: {:?}, uuid: {:?}, geo: {:?} }}",
+            self.zipcodes, self.uuid, self.geo
         )
     }
 }
@@ -361,18 +358,39 @@ pub struct Geo {
     pub active: bool,
     pub timezone: Option<String>,
 }
-async fn geo_from(zipcode: &Option<String>) -> Geo {
-    let uri = match zipcode {
-        Some(z) => format!("{}/zip/{}", DMA_URL, z),
-        None => String::from(IP_URL),
+async fn geo_from(zipcodes: &Option<Vec<String>>) -> Geo {
+    let mut geo = match zipcodes {
+        Some(z) => match valid_geo(z).await {
+            Some(g) => g,
+            None => panic!("No valid DMA found for zipcodes: {}", z.join(", ")),
+        },
+        None => {
+            match get_geo(&String::from(IP_URL)).await {
+                Ok(geo) if geo.active => geo,
+                Ok(geo) => panic!("{} is not active!", geo.name),
+                Err(e) => panic!("{}", e), // Some other HTTP error happened
+            }
+        }
     };
 
-    let mut geo = crate::utils::get(&uri, None, 100)
+    geo.timezone = Some(tz_search::lookup(geo.latitude, geo.longitude).unwrap());
+    geo
+}
+
+async fn valid_geo(zipcodes: &[String]) -> Option<Geo> {
+    for zipcode in zipcodes {
+        let uri = format!("{}/zip/{}", DMA_URL, zipcode);
+        match get_geo(&uri).await {
+            Ok(g) if g.active => return Some(g),
+            _ => {},
+        };
+    }
+    None
+}
+async fn get_geo(uri: &str) -> Result<Geo, Error> {
+    crate::utils::get(uri, None, 100)
         .await
         .unwrap()
         .json::<Geo>()
         .await
-        .unwrap();
-    geo.timezone = Some(tz_search::lookup(geo.latitude, geo.longitude).unwrap());
-    geo
 }

@@ -22,6 +22,7 @@ pub struct Config {
     pub disable_donation_check: bool,
     pub multiplex: bool,
     pub no_tvc_guide_station: bool,
+    pub override_cities: Option<Vec<String>>,
     pub override_zipcodes: Option<Vec<String>>,
     pub password: String,
     pub port: u16,
@@ -55,6 +56,7 @@ impl Config {
                 (@arg disable_donation_check: --disable_donation_check "Disable the donation check (use for Locast Cares accounts")
                 (@arg multiplex: -m --multiplex "Multiplex devices")
                 (@arg override_zipcodes: -z --override_zipcodes +takes_value "Override zipcodes")
+                (@arg override_cities: --override_cities +takes_value "Override zipcodes")
                 (@arg password: -P --password +takes_value "Locast password")
                 (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
                 (@arg remap: -r --remap "Remap channels when multiplexed")
@@ -130,6 +132,21 @@ impl Config {
                 None => cfg
                     .grab_multi()
                     .conf("override_zipcodes")
+                    .done()
+                    .map(|o| o.collect()),
+            },
+        };
+
+        // First check if there's a comma-separated list from the command line
+        conf.override_cities = match cfg.grab().arg("override_cities").done() {
+            Some(o) => Some(o.split('|').map(|x| x.to_owned()).collect()),
+            // Otherwise check for a comma-separated list from env variables
+            None => match cfg.grab().env("l2t_override_cities").done() {
+                Some(eo) => Some(eo.split('|').map(|x| x.to_owned()).collect()),
+                // If nothing, get from config
+                None => cfg
+                    .grab_multi()
+                    .conf("override_cities")
                     .done()
                     .map(|o| o.collect()),
             },

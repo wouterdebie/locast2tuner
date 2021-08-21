@@ -11,6 +11,6 @@ pub trait StationProvider {
     async fn stations(&self) -> Stations;
     fn geo(&self) -> Arc<Geo>;
     fn uuid(&self) -> String;
-    fn zipcode(&self) -> String;
+    fn zipcodes(&self) -> Vec<String>;
     fn services(&self) -> Vec<Arc<LocastService>>;
 }

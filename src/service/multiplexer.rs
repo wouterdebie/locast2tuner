@@ -126,8 +126,8 @@ impl StationProvider for Arc<Multiplexer> {
         self.config.uuid.to_owned()
     }
 
-    fn zipcode(&self) -> String {
-        "".to_owned()
+    fn zipcodes(&self) -> Vec<String> {
+        vec![]
     }
 
     fn services(&self) -> Vec<Arc<LocastService>> {

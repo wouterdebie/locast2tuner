@@ -67,6 +67,7 @@ tz-search = "0.1.1"
 url = "2.2.2"
 uuid = { version = "0.8.2", features = ["serde", "v4", "v5"] }
 zip = "0.5.13"
+zip_codes_plus = "0.2.0"
 
 [target.'cfg(unix)'.dependencies]
 slog-syslog = "0.12.0"
