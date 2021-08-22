@@ -14,8 +14,9 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use service::multiplexer::Multiplexer;
 use simple_error::SimpleError;
-use std::env;
+use std::path::Path;
 use std::sync::Arc;
+use std::{env, fs};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[actix_web::main]
@@ -44,11 +45,25 @@ async fn main() -> Result<(), SimpleError> {
     let _scope_guard = slog_scope::set_global_logger(logger);
     let _log_guard = slog_stdlog::init().unwrap();
 
+    // Check to see if running in a container
+    let cgroup = Path::new("/proc/1/cgroup");
+    let running_in_docker = if cgroup.exists() {
+        let info: String = fs::read_to_string(cgroup).unwrap().parse().unwrap();
+        if info.contains("docker") || info.contains("lxc") {
+            "(Docker) "
+        } else {
+            ""
+        }
+    } else {
+        ""
+    };
+
     info!(
-        "locast2tuner {} on {} {} starting..",
+        "locast2tuner {} on {} {} {}starting..",
         VERSION,
         sys_info::os_type().unwrap(),
-        sys_info::os_release().unwrap()
+        sys_info::os_release().unwrap(),
+        running_in_docker
     );
 
     info!("UUID: {}", conf.clone().uuid);
