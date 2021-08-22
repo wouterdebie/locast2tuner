@@ -167,7 +167,7 @@ impl Config {
             .arg("tuner_count")
             .env("l2t_tuner_count")
             .conf("tuner_count")
-            .t_def::<u8>(3);
+            .t_def::<u8>(16);
 
         conf.device_model = cfg
             .grab()
