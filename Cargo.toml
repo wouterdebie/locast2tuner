@@ -14,7 +14,7 @@ copyright = "2021, Wouter de Bie <wouter@evenflow.nl>"
 license-file = ["LICENSE", "0"]
 extended-description = """\
 Locast.org to Plex Media Server/Emby integration server"""
-depends = "$auto"
+depends = ""
 section = "utility"
 priority = "optional"
 assets = [
@@ -76,10 +76,10 @@ slog-syslog = "0.12.0"
 [build-dependencies]
 rustc_version   = "0.4.0"
 
-[profile.release]
-panic = "abort"
-debug = false
-lto = true
+# [profile.release]
+# panic = "abort"
+# debug = false
+# lto = true
 
 [dev-dependencies]
 cargo-bump = "1.1.0"
