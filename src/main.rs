@@ -60,7 +60,11 @@ async fn main() -> Result<(), SimpleError> {
     let fcc_facilities = Arc::new(fcc_facilities::FCCFacilities::new(conf.clone()).await);
 
     let zipcodes = if let Some(override_zipcodes) = conf.override_zipcodes.clone() {
-        Some(vec![override_zipcodes])
+        let x = override_zipcodes
+            .into_iter()
+            .map(|x| vec![x])
+            .collect::<Vec<Vec<String>>>();
+        Some(x)
     } else if let Some(cities) = &conf.override_cities {
         let z = cities
             .iter()
