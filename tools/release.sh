@@ -19,3 +19,4 @@ echo "=== Tagging version v${new_version} ==="
 git tag v${new_version}
 echo "=== git push ==="
 git push && git push --tags
+gh release create v${new_version}

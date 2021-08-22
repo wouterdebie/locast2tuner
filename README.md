@@ -1,6 +1,6 @@
 # locast2tuner
 
-[![Join the chat at https://gitter.im/wouterdebie/locast2tuner](https://badges.gitter.im/wouterdebie/locast2tuner.svg)](https://gitter.im/wouterdebie/locast2tuner?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) ![build status](https://github.com/wouterdebie/locast2tuner/actions/workflows/release.yml/badge.svg) ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/wouterdebie/locast2tuner) [![License](https://img.shields.io/badge/License-MIT-blue)](#license)
+[![Join the chat at https://gitter.im/wouterdebie/locast2tuner](https://badges.gitter.im/wouterdebie/locast2tuner.svg)](https://gitter.im/wouterdebie/locast2tuner?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) ![build status](https://github.com/wouterdebie/locast2tuner/actions/workflows/release.yml/badge.svg) ![GitHub release](https://img.shields.io/github/v/release/wouterdebie/locast2tuner) [![License](https://img.shields.io/badge/License-MIT-blue)](#license)
 
 This application provides an interface between locast.org and Media Servers like [Plex Media Server (PMS)](https://plex.tv) and [Emby](https://emby.media) by acting like an [HDHomerun](https://www.silicondust.com/) or an m3u tuner and an XMLTV provider.
 
@@ -20,6 +20,8 @@ This project isn't complete yet. It works, but there are a few things I'd like t
 
 # Submitting bugs or feature requests
 ## Bugs
+> ❗ Make sure to check https://github.com/wouterdebie/locast2tuner/releases for breaking configuration changes in the latest release before submitting a bug!
+
 When you encounter a bug, please use [Github Issues](https://github.com/wouterdebie/locast2tuner/issues):
 - _**PLEASE USE THE ISSUE TEMPLATES!**_ Issues that are lacking log excerpts and other information might be closed. In other words don't file issues that are simple "It doesn't work" ones.
 - Add a detailed description of the issue you're experiencing.

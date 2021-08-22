@@ -9,6 +9,8 @@ assignees: ''
 
 *NOTE THAT UNCLEAR BUG REPORTS (i.e. without the information requested below like logs, settings, versions, etc) MIGHT BE CLOSED WITHOUT ANY HELP!!*
 
+Please check https://github.com/wouterdebie/locast2tuner/releases if any breaking changes have been made before filing a bug report.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
