@@ -1,0 +1,2 @@
+# Sponsoring
+If you use `locast2tuner` and want to contribute by sponsoring, please leave a donation at my [Sponsor Page](https://github.com/sponsors/wouterdebie). All of the money donated will go towards organizations that support women and underprivileged children in STEM education like [BUILT BY GIRLS](https://www.builtbygirls.com/), [Electric Girls](https://www.electricgirls.org/), [Project Exploration](https://projectexploration.org/) and others.

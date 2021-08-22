@@ -1,6 +1,6 @@
 # locast2tuner
 
-[![Join the chat at https://gitter.im/wouterdebie/locast2tuner](https://badges.gitter.im/wouterdebie/locast2tuner.svg)](https://gitter.im/wouterdebie/locast2tuner?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) ![build status](https://github.com/wouterdebie/locast2tuner/actions/workflows/release.yml/badge.svg) ![GitHub release](https://img.shields.io/github/v/release/wouterdebie/locast2tuner) [![License](https://img.shields.io/badge/License-MIT-blue)](#license)
+[![Join the chat at https://gitter.im/wouterdebie/locast2tuner](https://badges.gitter.im/wouterdebie/locast2tuner.svg)](https://gitter.im/wouterdebie/locast2tuner?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) ![build status](https://github.com/wouterdebie/locast2tuner/actions/workflows/release.yml/badge.svg) ![GitHub release](https://img.shields.io/github/v/release/wouterdebie/locast2tuner) ![License](https://img.shields.io/badge/License-MIT-blue) [![Sponsor](https://img.shields.io/github/sponsors/wouterdebie)](https://github.com/sponsors/wouterdebie)
 
 This application provides an interface between locast.org and Media Servers like [Plex Media Server (PMS)](https://plex.tv) and [Emby](https://emby.media) by acting like an [HDHomerun](https://www.silicondust.com/) or an m3u tuner and an XMLTV provider.
 
@@ -15,6 +15,10 @@ This application provides an interface between locast.org and Media Servers like
 
 # Documentation
 Documentation can be found at [https://wouterdebie.github.io/locast2tuner/](https://wouterdebie.github.io/locast2tuner)
+
+# Sponsoring
+If you use `locast2tuner` and want to contribute by sponsoring, please leave a donation at my [Sponsor Page](https://github.com/sponsors/wouterdebie). All of the money donated will go towards organizations that support women and underprivileged children in STEM education like [BUILT BY GIRLS](https://www.builtbygirls.com/), [Electric Girls](https://www.electricgirls.org/), [Project Exploration](https://projectexploration.org/) and others.
+
 # Todo
 This project isn't complete yet. It works, but there are a few things I'd like to get done. These can be found on the [Issues page](https://github.com/wouterdebie/locast2tuner/issues)
 

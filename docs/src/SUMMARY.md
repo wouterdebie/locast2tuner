@@ -18,3 +18,4 @@
 - [Quickstart Guides](./quickstart.md)
   - [Emby](./quickstart/emby.md)
   - [Plex](./quickstart/plex.md)
+- [Sponsoring](./sponsoring.md)
