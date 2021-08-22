@@ -66,7 +66,9 @@ async fn main() -> Result<(), SimpleError> {
         running_in_docker
     );
 
-    info!("UUID: {}", conf.clone().uuid);
+    debug!("Main UUID: {}", conf.clone().uuid);
+
+    info!("Consider sponsoring this project at https://github.com/sponsors/wouterdebie!");
 
     // Login to locast and get credentials we pass around
     let credentials = Arc::new(credentials::LocastCredentials::new(conf.clone()).await);

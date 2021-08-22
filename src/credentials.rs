@@ -57,7 +57,7 @@ impl LocastCredentials {
 
 // Log in to locast.org
 async fn login<'a>(username: &str, password: &str) -> String {
-    info!("Logging in with {}", username);
+    debug!("Logging in with {}", username);
     let credentials = json!({
         "username": username,
         "password": password,
