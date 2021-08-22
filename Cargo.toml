@@ -78,6 +78,8 @@ rustc_version   = "0.4.0"
 
 [profile.release]
 panic = "abort"
+debug = false
+lto = true
 
 [dev-dependencies]
 cargo-bump = "1.1.0"

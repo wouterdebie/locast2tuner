@@ -111,11 +111,14 @@ jobs:
         uses: wouterdebie/cargo-deb-amd64-ubuntu@1.2
         with:
           cmd: cargo build --release --target=x86_64-unknown-linux-musl
+      - name: Strip binary
+        run: |
+          strip ./target/x86_64-unknown-linux-musl/release/locast2tuner -o locast2tuner
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
           name: amd64binaries
-          path: ./target/x86_64-unknown-linux-musl/release/locast2tuner
+          path: locast2tuner
 
   linuxamd64dockerbuild:
     needs: [amd64binaries]
