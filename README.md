@@ -8,10 +8,11 @@ This application provides an interface between locast.org and Media Servers like
 
 > ❗ Since locast.org uses Amazon Cloudfront to stream, region restrictions imposed by Cloudfront can not be circumvented. This means that `locast2tuner` might not work outside of the United States.
 # Features
-- Override your location using ZIP code or GPS coordinates
-- Multiple digital tuners in a single server, either as separate servers or as one (multiplexing)
-- Acts like either an HDHomerun or an m3u tuner
-- Provides locast.org EPG information as an XMLTV guide
+- Override your location using [zip codes or cities](https://wouterdebie.github.io/locast2tuner/advanced/regions.html)
+- Multiple digital tuners in a single server, either as separate servers or as one ([multiplexing](https://wouterdebie.github.io/locast2tuner/advanced/multiplexing.html))
+- Acts like either an [HDHomerun or an m3u tuner](https://wouterdebie.github.io/locast2tuner/advanced/tuner_emulation.html)
+- Provides locast.org [EPG](https://wouterdebie.github.io/locast2tuner/advanced/epg.html) information as an XMLTV guide
+- And [many more](https://wouterdebie.github.io/locast2tuner/)
 
 # Documentation
 Documentation can be found at [https://wouterdebie.github.io/locast2tuner/](https://wouterdebie.github.io/locast2tuner)
