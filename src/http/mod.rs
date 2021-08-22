@@ -129,7 +129,10 @@ pub async fn start<T: 'static + StationProvider + Sync + Send + Clone>(
 
             table.add_row(row![
                 s.geo().name,
-                s.geo().used_zipcode.as_ref().unwrap(),
+                s.geo()
+                    .used_zipcode
+                    .as_ref()
+                    .unwrap_or(&"IP based".to_string()),
                 s.geo().DMA,
                 s.uuid(),
                 s.geo().timezone.as_ref().unwrap_or(&"".to_string()),
