@@ -169,7 +169,7 @@ jobs:
           echo "$PRIV_KEY" > /tmp/privkey
           gpg --import -a /tmp/privkey
           cp *.deb ./wouterdebie.github.io/ppa
-          cp *.exe ./wouterdebie.github.io/bin/win
+          cp *.exe ./wouterdebie.github.io/bin
           pushd ./wouterdebie.github.io/ppa
           dpkg-scanpackages --multiversion . > Packages
           gzip -k -f Packages
