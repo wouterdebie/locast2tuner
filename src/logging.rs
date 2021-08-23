@@ -42,7 +42,7 @@ pub fn logger(log_level: Level, conf: &Arc<config::Config>) -> Logger {
         None => None,
     };
 
-    #[cfg(target_family = "unix")]
+    #[cfg(not(windows))]
     let syslog_drain = match &conf.syslog {
         true => Some(
             slog_syslog::unix_3164(slog_syslog::Facility::LOG_USER)
@@ -52,7 +52,7 @@ pub fn logger(log_level: Level, conf: &Arc<config::Config>) -> Logger {
         false => None,
     };
 
-    #[cfg(target_family = "windows")]
+    #[cfg(windows)]
     let syslog_drain = match &conf.syslog {
         true => Some(Discard),
         false => None,
