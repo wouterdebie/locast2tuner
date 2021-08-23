@@ -2,8 +2,11 @@ on:
   push:
     tags:
       - v*
+    branches-ignore:
+      - main
+  pull_request:
     branches:
-      - "*"
+      - main
 
 name: Release Build
 
