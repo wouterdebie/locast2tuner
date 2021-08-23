@@ -633,6 +633,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clippy"
+version = "0.0.302"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d911ee15579a3f50880d8c1d59ef6e79f9533127a3bd342462f5d584f5e8c294"
+dependencies = [
+ "term 0.5.2",
+]
+
+[[package]]
 name = "cloudabi"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1523,6 +1532,7 @@ dependencies = [
  "chrono-tz",
  "clap 3.0.0-beta.2",
  "clap_conf",
+ "clippy",
  "derive_more",
  "dirs 3.0.2",
  "format_xml",
