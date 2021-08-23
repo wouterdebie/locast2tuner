@@ -26,8 +26,11 @@ jobs:
           toolchain: stable
           profile: minimal
       - uses: Swatinem/rust-cache@v1
-      - name: Install cargo-deb
-        run: cargo install cargo-deb
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-deb
+          version: latest
+          use-tool-cache: true
       - name: Run cargo deb
         uses: actions-rs/cargo@v1
         id: debbuild
@@ -60,8 +63,16 @@ jobs:
           profile: minimal
           target: armv7-unknown-linux-gnueabihf
       - uses: Swatinem/rust-cache@v1
-      - name: Install cargo-deb and cross
-        run: cargo install cargo-deb cross
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-deb
+          version: latest
+          use-tool-cache: true
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cross
+          version: latest
+          use-tool-cache: true
       - name: Run cargo deb
         uses: actions-rs/cargo@v1
         id: debbuild
