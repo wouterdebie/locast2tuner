@@ -105,9 +105,41 @@ jobs:
           name: amd64binaries
           path: locast2tuner
 
+  win64binaries:
+    runs-on: ubuntu-latest
+    name: Build win64 executable
+    steps:
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-mingw-w64
+      - uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: x86_64-pc-windows-gnu
+      - uses: Swatinem/rust-cache@v1
+      - name: Build static
+        uses: actions-rs/cargo@v1
+        id: win64execbuild
+        with:
+          command: build
+          args: --release --target=x86_64-pc-windows-gnu
+      - name: Rename binary
+        run: |
+          version=$(grep -E '^version' Cargo.toml | cut -d'"' -f2)
+          mv ./target/x86_64-pc-windows-gnu/release/locast2tuner.exe ./target/x86_64-pc-windows-gnu/release/locast2tuner-${version}-x86_64.exe
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: win64binaries
+          path: ./target/x86_64-pc-windows-gnu/release/*.exe
+
   upload_ppa:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [debbuild, raspbianbuild]
+    needs: [debbuild, raspbianbuild, win64binaries]
     runs-on: ubuntu-latest
     name: Upload to PPA
     steps:
@@ -118,6 +150,9 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: armv7deb
+      - uses: actions/download-artifact@v2
+        with:
+          name: win64binaries
       - name: Checkout PPA repository
         uses: actions/checkout@master
         with:
@@ -134,6 +169,7 @@ jobs:
           echo "$PRIV_KEY" > /tmp/privkey
           gpg --import -a /tmp/privkey
           cp *.deb ./wouterdebie.github.io/ppa
+          cp *.exe ./wouterdebie.github.io/locast2tuner/win
           pushd ./wouterdebie.github.io/ppa
           dpkg-scanpackages --multiversion . > Packages
           gzip -k -f Packages
@@ -201,212 +237,3 @@ jobs:
           tags: ${{ steps.meta_branch.outputs.tags }}
           push: true
           platforms: linux/amd64
-# quickcheck:
-# runs-on: ubuntu-latest
-# outputs:
-#   version: ${{ steps.rustversion.outputs.rustversion }}
-# steps:
-#   - uses: actions/checkout@v2
-#   - uses: actions/cache@v2
-#     with:
-#       path: |
-#         ~/.cargo/registry
-#         ~/.cargo/git
-#         target
-#       key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-#   - run: cargo check
-#   - run: cargo pkgid
-#   - run: 'echo "$(cargo pkgid | cut -d# -f2)"'
-#   - id: rustversion
-#     run: 'echo "::set-output name=rustversion::$(cargo pkgid | cut -d# -f2)"'
-# macosbuild:
-#   needs: [quickcheck]
-#   runs-on: macos-latest
-#   name: MacOS
-#   steps:
-#     - uses: actions/checkout@v2
-#     -
-#       name: Build
-#       run: cargo build --release
-#     -
-#       name: Zip up macos binaries
-#       run: "zip -j ebbflow_${{needs.quickcheck.outputs.version}}_macos.zip ./target/release/ebbflowd ./target/release/ebbflow"
-#     -
-#       name: Upload Zipped Artifact
-#       uses: actions/upload-artifact@v2
-#       with:
-#         name: macos
-#         path: "ebbflow_${{needs.quickcheck.outputs.version}}_macos.zip"
-#     - name: Upload Bin Artifact
-#       uses: actions/upload-artifact@v2
-#       with:
-#         name: macos
-#         path: ./target/release/ebbflow
-#     - name: Upload Daemon Artifact
-#       uses: actions/upload-artifact@v2
-#       with:
-#         name: macos
-#         path: ./target/release/ebbflowd
-# quickcheck:
-#   runs-on: ubuntu-latest
-#   outputs:
-#     version: ${{ steps.rustversion.outputs.rustversion }}
-#   steps:
-#     - uses: actions/checkout@v2
-#     - run: cargo check
-#     - run: cargo pkgid
-#     - run: 'echo "$(cargo pkgid | cut -d# -f2)"'
-#     - id: rustversion
-#       run: 'echo "::set-output name=rustversion::$(cargo pkgid | cut -d# -f2)"'
-# build:
-#   needs: quickcheck
-#   name: "build-${{matrix.os}}"
-#   runs-on: ${{ matrix.os }}
-#   strategy:
-#     matrix:
-#       # os: [ubuntu-latest, windows-latest, macos-latest]
-#       os: [ubuntu-latest]
-#   steps:
-#     - uses: actions/checkout@v2
-#     - name: Build
-#       run: cargo build
-#     - name: Run tests
-#       run: cargo test
-# windowsbuild:
-#   needs: [build]
-#   runs-on: windows-latest
-#   env:
-#     RUSTFLAGS: '-C target-feature=+crt-static'
-#   name: Windows
-#   steps:
-#   - uses: actions/checkout@v2
-#   - uses: actions-rs/toolchain@v1
-#     with:
-#       toolchain: stable
-#   - uses: actions-rs/install@v0.1
-#     with:
-#       crate: cargo-wix
-#       version: latest
-#   - run: cargo wix -v --nocapture -o .
-#   - name: Upload MSI Artifact
-#     uses: actions/upload-artifact@v2
-#     with:
-#       name: windows
-#       path: ./*.msi
-# arm7binaries:
-#   needs: [build, quickcheck]
-#   runs-on: ubuntu-latest
-#   name: Armv7StaticBinaries
-#   steps:
-#   - uses: actions/checkout@v2
-#   - name: StaticBinaryBuild
-#     id: armv7statibuild
-#     uses: ebbflow-io/cargo-deb-armv7-debian@1.0
-#     with:
-#       cmd: cargo build --release --target=armv7-unknown-linux-musleabihf
-#   - name: Upload Daemon Artifact
-#     uses: actions/upload-artifact@v2
-#     with:
-#       name: armv7binaries
-#       path: ./target/armv7-unknown-linux-musleabihf/release/ebbflowd
-#   - name: Upload Ebbflow Artifact
-#     uses: actions/upload-artifact@v2
-#     with:
-#       name: armv7binaries
-#       path: ./target/armv7-unknown-linux-musleabihf/release/ebbflow
-#   - run: 'zip -j armv7binaries.zip ./target/armv7-unknown-linux-musleabihf/release/ebbflow ./target/armv7-unknown-linux-musleabihf/release/ebbflowd'
-#   - name: Upload Zip Artifact
-#     uses: actions/upload-artifact@v2
-#     with:
-#       name: armv7binaries
-#       path: armv7binaries.zip
-# update_release_draft:
-#   needs: [quickcheck, arm7binaries, linuxamd64dockerbuild, amd64binaries, macosbuild, windowsbuild, raspbianbuild, debbuild, opensuseleaprpmbuild, fedorarpmbuild]
-#   runs-on: ubuntu-latest
-#   steps:
-#     - uses: actions/checkout@v2
-#     - name: Create Release
-#       id: create_release
-#       uses: actions/create-release@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-#       with:
-#         tag_name: '${{ needs.quickcheck.outputs.version }}'
-#         release_name: Release ${{ needs.quickcheck.outputs.version }}
-#         body: 'Change Me'
-#         draft: true
-#         prerelease: false
-#     - uses: actions/download-artifact@v2
-#     - run: ls -lha
-#     - name: Upload amd64 deb Release Asset
-#       uses: actions/upload-release-asset@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         upload_url: ${{ steps.create_release.outputs.upload_url }}
-#         asset_path: ./amd64deb/ebbflow_${{needs.quickcheck.outputs.version}}_amd64.deb
-#         asset_name: 'ebbflow_${{needs.quickcheck.outputs.version}}_amd64.deb'
-#         asset_content_type: application/vnd.debian.binary-package
-#     - name: Upload armv7 deb Release Asset
-#       uses: actions/upload-release-asset@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         upload_url: ${{ steps.create_release.outputs.upload_url }}
-#         asset_path: ./armv7deb/ebbflow_${{needs.quickcheck.outputs.version}}_armhf.deb
-#         asset_name: 'ebbflow_${{needs.quickcheck.outputs.version}}_armhf.deb'
-#         asset_content_type: application/vnd.debian.binary-package
-#     - name: Upload amd64 rpm fedora Release Asset
-#       uses: actions/upload-release-asset@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         upload_url: ${{ steps.create_release.outputs.upload_url }}
-#         asset_path: ./fedorarpm/ebbflow-${{needs.quickcheck.outputs.version}}-1.x86_64.rpm
-#         asset_name: 'ebbflow_${{needs.quickcheck.outputs.version}}-1_amd64_fedora.rpm'
-#         asset_content_type: application/octet-stream
-#     - name: Upload amd64 rpm opensuse Release Asset
-#       uses: actions/upload-release-asset@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         upload_url: ${{ steps.create_release.outputs.upload_url }}
-#         asset_path: ./opensuserpm/ebbflow-${{needs.quickcheck.outputs.version}}-1.x86_64.rpm
-#         asset_name: 'ebbflow_${{needs.quickcheck.outputs.version}}-1_amd64_opensuseleap.rpm'
-#         asset_content_type: application/octet-stream
-#     - name: Upload Windows Release Asset
-#       uses: actions/upload-release-asset@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         upload_url: ${{ steps.create_release.outputs.upload_url }}
-#         asset_path: ./windows/ebbflow-${{needs.quickcheck.outputs.version}}-x86_64.msi
-#         asset_name: 'ebbflow_${{needs.quickcheck.outputs.version}}.msi'
-#         asset_content_type: application/octet-stream
-#     - name: Upload Macos Release Asset
-#       uses: actions/upload-release-asset@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         upload_url: ${{ steps.create_release.outputs.upload_url }}
-#         asset_path: ./macos/ebbflow_${{needs.quickcheck.outputs.version}}_macos.zip
-#         asset_name: 'ebbflow_${{needs.quickcheck.outputs.version}}_macos.zip'
-#         asset_content_type: application/zip
-#     - name: Upload Armv7 Static Binary Zip Release Asset
-#       uses: actions/upload-release-asset@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         upload_url: ${{ steps.create_release.outputs.upload_url }}
-#         asset_path: ./armv7binaries/armv7binaries.zip
-#         asset_name: 'ebbflow_${{needs.quickcheck.outputs.version}}_linux_armv7_binaries.zip'
-#         asset_content_type: application/zip
-#     - name: Upload Amd64 Static Binary Zip Release Asset
-#       uses: actions/upload-release-asset@v1
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         upload_url: ${{ steps.create_release.outputs.upload_url }}
-#         asset_path: ./amd64binaries/amd64binaries.zip
-#         asset_name: 'ebbflow_${{needs.quickcheck.outputs.version}}_linux_amd64_binaries.zip'
-#         asset_content_type: application/zip
