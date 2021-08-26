@@ -139,7 +139,7 @@ jobs:
 
   upload_ppa:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [debbuild, raspbianbuild, win64binaries]
+    needs: [debbuild, raspbianbuild]
     runs-on: ubuntu-latest
     name: Upload binaries and update PPA
     steps:
@@ -150,9 +150,6 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: armv7deb
-      - uses: actions/download-artifact@v2
-        with:
-          name: win64binaries
       - name: Checkout PPA repository
         uses: actions/checkout@master
         with:
@@ -169,7 +166,6 @@ jobs:
           echo "$PRIV_KEY" > /tmp/privkey
           gpg --import -a /tmp/privkey
           cp *.deb ./wouterdebie.github.io/ppa
-          cp *.exe ./wouterdebie.github.io/bin
           pushd ./wouterdebie.github.io/ppa
           dpkg-scanpackages --multiversion . > Packages
           gzip -k -f Packages
