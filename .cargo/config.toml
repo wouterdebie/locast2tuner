@@ -1,3 +1,6 @@
 [target.armv7-unknown-linux-gnueabihf]
 linker = "arm-linux-gnueabihf-gcc"
 strip = { path = "arm-linux-gnueabihf-strip" }
+
+[net]
+retry = 10
