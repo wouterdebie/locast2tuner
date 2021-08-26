@@ -1,4 +1,5 @@
-This release fixes two bugs:
-- Only succeed login on HTTP 200 code to make sure there is data to parse. Before, login was considered succesfull on a HTTP 200-299 return code, but that doesn't always mean there's data to parse in order to grab the login token. This is now much stricter and login only succeeds at HTTP 200.
-- Make multiplex required for remap and remap_file. `remap` and `remap_file` now require `multiplex` to be set, since otherwise neither will work. This means that locast2tuner will error if this multiplex isn't on.
+This release adds an aarch64 Debian/Ubuntu build that can be used on arm64 deployments.
 
+Also, thanks to the follwoing amazing $50 sponsors: @tharris9d and @hdmllr! 
+
+All of the money donated will go towards organizations that support women and underprivileged children in STEM education.
