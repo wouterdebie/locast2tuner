@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 static LOGIN_URL: &str =
-    "https://api.locastnet.org/api/user/login?client_id=9qXBrVzpTjUZmVGsZRnnWQ-7GvGeJ48QWtV9v%2Bbsen4%3D";
+    "https://api.locastnet.org/api/user/login?client_id=i7XBbuDLYwN%2Bd%2Bcf84YQCYK-NyR8QjBGyFV-g5zCRFY%3D";
 static USER_URL: &str = "https://api.locastnet.org/api/user/me";
 static TOKEN_LIFETIME: i64 = 3600;
 
