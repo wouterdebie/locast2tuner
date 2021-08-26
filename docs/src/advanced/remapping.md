@@ -1,5 +1,5 @@
 # Remapping
-In case you override multiple zip codes, Emby and Plex will sort channels by channel number, which means channels from different locations might be intermingled. In order circumvent this, you can remap channels.  `locast2tuner` offers two ways of remapping channels. Note that these two options are mutually exclusive, but both can appear in a config file. If both appear, then the `--remap` option takes precedence.
+In case you override multiple zip codes, Emby and Plex will sort channels by channel number, which means channels from different locations might be intermingled. In order circumvent this, you can remap channels.  `locast2tuner` offers two ways of remapping channels: `--remap` and `--remap_file`. Note that these two options are mutually exclusive, but both can appear in a config file. If both appear, then the `--remap` option takes precedence.
 
 > ❗ Remapping only works when using `multiplex`.
 

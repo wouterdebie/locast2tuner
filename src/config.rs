@@ -64,7 +64,7 @@ impl Config {
                 (@arg override_cities: --override_cities +takes_value "Override locations using cities")
                 (@arg password: -P --password +takes_value "Locast password")
                 (@arg port: -p --port +takes_value "Bind TCP port (default: 6077)")
-                (@arg remap: -r --remap "Remap channels when multiplexed")
+                (@arg remap: -r --remap "Remap channels when multiplexed. Requires multiplex!")
                 (@arg rust_backtrace: --rust_backtrace "Enable RUST_BACKTRACE=1")
                 (@arg syslog: --syslog "Log to syslogd")
                 (@arg quiet: --quiet "Don't log to terminal")
@@ -72,7 +72,7 @@ impl Config {
                 (@arg username: -U --username +takes_value "Locast username")
                 (@arg verbose: -v --verbose +takes_value "Verbosity (default: 0)")
                 (@arg logfile: -l --logfile +takes_value "Log file location")
-                (@arg remap_file: --remap_file +takes_value "Remap file location")
+                (@arg remap_file: --remap_file +takes_value "Remap file location. Requires muliplex!")
                 (@arg no_tvc_guide_station: --no_tvc_guide_station "Don't show no_tvc_guide_station in tuner.m3u")
                 (@arg skip_hls: --skip_hls "Skip hls.locast.org, but use endpoints that are close to the broadcast")
                 (@arg random_zipcode: --random_zipcode "Randomize city zip codes when using override_cities")
@@ -260,6 +260,10 @@ impl Config {
         conf.uuid = load_uuid(&cache_directory).unwrap();
 
         conf.cache_directory = cache_directory;
+
+        if (conf.remap || conf.remap_file.is_some()) && !conf.multiplex {
+            panic!("In order to use remap or remap_file, multiplex has to be enabled!");
+        }
 
         Ok(conf)
     }
