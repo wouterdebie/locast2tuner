@@ -11,54 +11,89 @@ on:
 name: Release Build
 
 jobs:
-  debbuild:
-    runs-on: ubuntu-latest
-    name: Build .deb (amd64)
-    steps:
-      - name: Install musl tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install liblzma-dev
-      - uses: actions/checkout@v2
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-      - uses: Swatinem/rust-cache@v1
-      - name: Install cargo-deb
-        run: cargo install cargo-deb
-      - name: Run cargo deb
-        uses: actions-rs/cargo@v1
-        id: debbuild
-        with:
-          command: deb
-      - name: Upload Deb Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: amd64deb
-          path: ./target/debian/*
+  # debbuild:
+  #   runs-on: ubuntu-latest
+  #   name: Build .deb (amd64)
+  #   steps:
+  #     - name: Install musl tools
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install liblzma-dev
+  #     - uses: actions/checkout@v2
+  #     - name: Install Rust toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #     - uses: Swatinem/rust-cache@v1
+  #     - name: Install cargo-deb
+  #       run: cargo install cargo-deb
+  #     - name: Run cargo deb
+  #       uses: actions-rs/cargo@v1
+  #       id: debbuild
+  #       with:
+  #         command: deb
+  #     - name: Upload Deb Artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: amd64deb
+  #         path: ./target/debian/*
 
-  raspbianbuild:
+  # raspbianbuild:
+  #   runs-on: ubuntu-latest
+  #   name: Build .deb (arm7)
+  #   steps:
+  #     - name: Install musl and armhf packages
+  #       run: |
+  #         sudo sed -i s/^deb/deb\ [arch=amd64]/g /etc/apt/sources.list
+  #         sudo dpkg --add-architecture armhf
+  #         sudo bash -c 'echo "deb [arch=armhf] http://ports.ubuntu.com/ focal main universe" >> /etc/apt/sources.list'
+  #         sudo apt-get update
+  #         sudo apt-get install musl-dev musl-tools liblzma-dev \
+  #                              libc6-armhf-cross libc6-dev-armhf-cross \
+  #                              gcc-arm-linux-gnueabihf
+  #     - uses: actions/checkout@v2
+  #     - name: Install Rust toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         target: armv7-unknown-linux-gnueabihf
+  #     - uses: Swatinem/rust-cache@v1
+  #     - name: Install cargo-deb and cross
+  #       run: cargo install cargo-deb cross
+  #     - name: Run cargo deb
+  #       uses: actions-rs/cargo@v1
+  #       id: debbuild
+  #       with:
+  #         command: deb
+  #         args: --target armv7-unknown-linux-gnueabihf
+  #     - name: Upload Deb Artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: armv7deb
+  #         path: ./target/armv7-unknown-linux-gnueabihf/debian/*
+
+  aarch64build:
     runs-on: ubuntu-latest
-    name: Build .deb (arm7)
+    name: Build .deb (aarch64)
     steps:
-      - name: Install musl and armhf packages
+      - name: Install musl and aarch64 packages
         run: |
           sudo sed -i s/^deb/deb\ [arch=amd64]/g /etc/apt/sources.list
-          sudo dpkg --add-architecture armhf
-          sudo bash -c 'echo "deb [arch=armhf] http://ports.ubuntu.com/ focal main universe" >> /etc/apt/sources.list'
+          sudo dpkg --add-architecture aarch64
+          sudo bash -c 'echo "deb [arch=aarch64] http://ports.ubuntu.com/ focal main universe" >> /etc/apt/sources.list'
           sudo apt-get update
           sudo apt-get install musl-dev musl-tools liblzma-dev \
-                               libc6-armhf-cross libc6-dev-armhf-cross \
-                               gcc-arm-linux-gnueabihf
+                               libc6-arm64-cross libc6-dev-arm64-cross \
+                               gcc-aarch64-linux-gnu
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
-          target: armv7-unknown-linux-gnueabihf
+          target: aarch64-unknown-linux-gnu
       - uses: Swatinem/rust-cache@v1
       - name: Install cargo-deb and cross
         run: cargo install cargo-deb cross
@@ -67,190 +102,185 @@ jobs:
         id: debbuild
         with:
           command: deb
-          args: --target armv7-unknown-linux-gnueabihf
+          args: --target aarch64-unknown-linux-gnu
       - name: Upload Deb Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: armv7deb
-          path: ./target/armv7-unknown-linux-gnueabihf/debian/*
-
-  amd64binaries:
-    runs-on: ubuntu-latest
-    name: Build amd64 static binary
-    steps:
-      - name: Install musl tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install musl-dev musl-tools
-      - uses: actions/checkout@v2
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          target: x86_64-unknown-linux-musl
-      - uses: Swatinem/rust-cache@v1
-      - name: Build static
-        uses: actions-rs/cargo@v1
-        id: amd64staticbuild
-        with:
-          command: build
-          args: --release --target=x86_64-unknown-linux-musl
-      - name: Strip binary
-        run: |
-          strip ./target/x86_64-unknown-linux-musl/release/locast2tuner -o locast2tuner
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: amd64binaries
-          path: locast2tuner
-
-  win64binaries:
-    runs-on: ubuntu-latest
-    name: Build win64 executable
-    steps:
-      - name: Install build deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install gcc-mingw-w64
-      - uses: actions/checkout@v2
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          target: x86_64-pc-windows-gnu
-      - uses: Swatinem/rust-cache@v1
-      - name: Build static
-        uses: actions-rs/cargo@v1
-        id: win64execbuild
-        with:
-          command: build
-          args: --release --target=x86_64-pc-windows-gnu
-      - name: Rename binary
-        run: |
-          version=$(grep -E '^version' Cargo.toml | cut -d'"' -f2)
-          mv ./target/x86_64-pc-windows-gnu/release/locast2tuner.exe ./target/x86_64-pc-windows-gnu/release/locast2tuner-${version}-x86_64.exe
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: win64binaries
-          path: ./target/x86_64-pc-windows-gnu/release/*.exe
-
-  upload_ppa:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [debbuild, raspbianbuild]
-    runs-on: ubuntu-latest
-    name: Upload binaries and update PPA
-    steps:
-      - run: sudo apt -y install gnupg
-      - uses: actions/download-artifact@v2
-        with:
-          name: amd64deb
-      - uses: actions/download-artifact@v2
-        with:
-          name: armv7deb
-      - name: Checkout PPA repository
-        uses: actions/checkout@master
-        with:
-          repository: wouterdebie/wouterdebie.github.io
-          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
-          fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
-          path: wouterdebie.github.io
-          token: ${{ secrets.API_KEY }}
-      - name: Update PPA repository
-        env:
-          PRIV_KEY: ${{ secrets.PRIV_KEY }}
-          EMAIL: wouter@evenflow.nl
-        run: |
-          echo "$PRIV_KEY" > /tmp/privkey
-          gpg --import -a /tmp/privkey
-          cp *.deb ./wouterdebie.github.io/ppa
-          pushd ./wouterdebie.github.io/ppa
-          dpkg-scanpackages --multiversion . > Packages
-          gzip -k -f Packages
-          apt-ftparchive release . > Release
-          gpg --default-key "${EMAIL}" -abs -o - Release > Release.gpg
-          gpg --default-key "${EMAIL}" --clearsign -o - Release > InRelease
-          popd
-      - name: Commit & Push changes
-        uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.API_KEY }}
-          directory: wouterdebie.github.io
-          repository: wouterdebie/wouterdebie.github.io
-          branch: main
-
-  create_release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: [debbuild, raspbianbuild, win64binaries, amd64binaries]
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-      - name: Rename amd64 binary
-        run: mv amd64binaries/locast2tuner amd64binaries/locast2tuner_${GITHUB_REF#refs/*/}_x86_64-unknown-linux-musl
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          body_path: .latest_release.txt
-          files: |
-            amd64binaries/*
-            amd64deb/*.deb
-            armv7deb/*.deb
-            win64binaries/*.exe
-
-  linuxamd64dockerbuild:
-    needs: [amd64binaries]
-    runs-on: ubuntu-latest
-    name: Docker (amd64) + publish
-    steps:
-      - uses: actions/checkout@v2
-      - name: Docker meta (tag)
-        if: startsWith(github.ref, 'refs/tags/')
-        id: meta_tag
-        uses: docker/metadata-action@v3
-        with:
-          images: ghcr.io/wouterdebie/locast2tuner
-          tags: |
-            latest
-            type=semver,pattern={{version}}
-      - name: Docker meta (branch)
-        if: startsWith(github.ref, 'refs/heads/')
-        id: meta_branch
-        uses: docker/metadata-action@v3
-        with:
-          images: ghcr.io/wouterdebie/locast2tuner
-          tags: |
-            type=ref,event=branch
-      - uses: actions/download-artifact@v2
-      - run: |
-          chmod +x ./amd64binaries/locast2tuner
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.CR_PAT }}
-      - name: Build and push Docker images (tag)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./assets/docker/Dockerfile
-          tags: ${{ steps.meta_tag.outputs.tags }}
-          push: true
-          platforms: linux/amd64
-      - name: Build and push Docker images (branch)
-        if: startsWith(github.ref, 'refs/heads/')
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./assets/docker/Dockerfile
-          tags: ${{ steps.meta_branch.outputs.tags }}
-          push: true
-          platforms: linux/amd64
+          name: aarch64deb
+          path: ./target/aarch64-unknown-linux-gnu/debian/*
+  # amd64binaries:
+  #   runs-on: ubuntu-latest
+  #   name: Build amd64 static binary
+  #   steps:
+  #     - name: Install musl tools
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install musl-dev musl-tools
+  #     - uses: actions/checkout@v2
+  #     - name: Install Rust toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         target: x86_64-unknown-linux-musl
+  #     - uses: Swatinem/rust-cache@v1
+  #     - name: Build static
+  #       uses: actions-rs/cargo@v1
+  #       id: amd64staticbuild
+  #       with:
+  #         command: build
+  #         args: --release --target=x86_64-unknown-linux-musl
+  #     - name: Strip binary
+  #       run: |
+  #         strip ./target/x86_64-unknown-linux-musl/release/locast2tuner -o locast2tuner
+  #     - name: Upload Artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: amd64binaries
+  #         path: locast2tuner
+  # win64binaries:
+  #   runs-on: ubuntu-latest
+  #   name: Build win64 executable
+  #   steps:
+  #     - name: Install build deps
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install gcc-mingw-w64
+  #     - uses: actions/checkout@v2
+  #     - name: Install Rust toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         target: x86_64-pc-windows-gnu
+  #     - uses: Swatinem/rust-cache@v1
+  #     - name: Build static
+  #       uses: actions-rs/cargo@v1
+  #       id: win64execbuild
+  #       with:
+  #         command: build
+  #         args: --release --target=x86_64-pc-windows-gnu
+  #     - name: Rename binary
+  #       run: |
+  #         version=$(grep -E '^version' Cargo.toml | cut -d'"' -f2)
+  #         mv ./target/x86_64-pc-windows-gnu/release/locast2tuner.exe ./target/x86_64-pc-windows-gnu/release/locast2tuner-${version}-x86_64.exe
+  #     - name: Upload Artifact
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: win64binaries
+  #         path: ./target/x86_64-pc-windows-gnu/release/*.exe
+  # upload_ppa:
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   needs: [debbuild, raspbianbuild]
+  #   runs-on: ubuntu-latest
+  #   name: Upload binaries and update PPA
+  #   steps:
+  #     - run: sudo apt -y install gnupg
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: amd64deb
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: armv7deb
+  #     - name: Checkout PPA repository
+  #       uses: actions/checkout@master
+  #       with:
+  #         repository: wouterdebie/wouterdebie.github.io
+  #         persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
+  #         fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
+  #         path: wouterdebie.github.io
+  #         token: ${{ secrets.API_KEY }}
+  #     - name: Update PPA repository
+  #       env:
+  #         PRIV_KEY: ${{ secrets.PRIV_KEY }}
+  #         EMAIL: wouter@evenflow.nl
+  #       run: |
+  #         echo "$PRIV_KEY" > /tmp/privkey
+  #         gpg --import -a /tmp/privkey
+  #         cp *.deb ./wouterdebie.github.io/ppa
+  #         pushd ./wouterdebie.github.io/ppa
+  #         dpkg-scanpackages --multiversion . > Packages
+  #         gzip -k -f Packages
+  #         apt-ftparchive release . > Release
+  #         gpg --default-key "${EMAIL}" -abs -o - Release > Release.gpg
+  #         gpg --default-key "${EMAIL}" --clearsign -o - Release > InRelease
+  #         popd
+  #     - name: Commit & Push changes
+  #       uses: actions-js/push@master
+  #       with:
+  #         github_token: ${{ secrets.API_KEY }}
+  #         directory: wouterdebie.github.io
+  #         repository: wouterdebie/wouterdebie.github.io
+  #         branch: main
+  # create_release:
+  #   name: Release
+  #   runs-on: ubuntu-latest
+  #   needs: [debbuild, raspbianbuild, win64binaries, amd64binaries]
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/download-artifact@v2
+  #     - name: Rename amd64 binary
+  #       run: mv amd64binaries/locast2tuner amd64binaries/locast2tuner_${GITHUB_REF#refs/*/}_x86_64-unknown-linux-musl
+  #     - name: Release
+  #       uses: softprops/action-gh-release@v1
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       with:
+  #         body_path: .latest_release.txt
+  #         files: |
+  #           amd64binaries/*
+  #           amd64deb/*.deb
+  #           armv7deb/*.deb
+  #           win64binaries/*.exe
+  # linuxamd64dockerbuild:
+  #   needs: [amd64binaries]
+  #   runs-on: ubuntu-latest
+  #   name: Docker (amd64) + publish
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Docker meta (tag)
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       id: meta_tag
+  #       uses: docker/metadata-action@v3
+  #       with:
+  #         images: ghcr.io/wouterdebie/locast2tuner
+  #         tags: |
+  #           latest
+  #           type=semver,pattern={{version}}
+  #     - name: Docker meta (branch)
+  #       if: startsWith(github.ref, 'refs/heads/')
+  #       id: meta_branch
+  #       uses: docker/metadata-action@v3
+  #       with:
+  #         images: ghcr.io/wouterdebie/locast2tuner
+  #         tags: |
+  #           type=ref,event=branch
+  #     - uses: actions/download-artifact@v2
+  #     - run: |
+  #         chmod +x ./amd64binaries/locast2tuner
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v1
+  #     - name: Login to GitHub Container Registry
+  #       uses: docker/login-action@v1
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.repository_owner }}
+  #         password: ${{ secrets.CR_PAT }}
+  #     - name: Build and push Docker images (tag)
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       uses: docker/build-push-action@v2
+  #       with:
+  #         context: .
+  #         file: ./assets/docker/Dockerfile
+  #         tags: ${{ steps.meta_tag.outputs.tags }}
+  #         push: true
+  #         platforms: linux/amd64
+  #     - name: Build and push Docker images (branch)
+  #       if: startsWith(github.ref, 'refs/heads/')
+  #       uses: docker/build-push-action@v2
+  #       with:
+  #         context: .
+  #         file: ./assets/docker/Dockerfile
+  #         tags: ${{ steps.meta_branch.outputs.tags }}
+  #         push: true
+  #         platforms: linux/amd64

@@ -2,5 +2,9 @@
 linker = "arm-linux-gnueabihf-gcc"
 strip = { path = "arm-linux-gnueabihf-strip" }
 
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+strip = { path = "aarch64-linux-gnu-strip" }
+
 [net]
 retry = 10
