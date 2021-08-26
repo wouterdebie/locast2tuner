@@ -11,7 +11,7 @@ on:
 name: Release Build
 
 jobs:
-  debbuild:
+  amd64deb:
     runs-on: ubuntu-latest
     name: Build .deb (amd64)
     steps:
@@ -39,7 +39,7 @@ jobs:
           name: amd64deb
           path: ./target/debian/*
 
-  raspbianbuild:
+  arm7deb:
     runs-on: ubuntu-latest
     name: Build .deb (arm7)
     steps:
@@ -74,7 +74,42 @@ jobs:
           name: armv7deb
           path: ./target/armv7-unknown-linux-gnueabihf/debian/*
 
-  amd64binaries:
+  aarch64deb:
+    runs-on: ubuntu-latest
+    name: Build .deb (aarch64)
+    steps:
+      - name: Install musl and aarch64 packages
+        run: |
+          sudo sed -i s/^deb/deb\ [arch=amd64]/g /etc/apt/sources.list
+          sudo dpkg --add-architecture aarch64
+          sudo bash -c 'echo "deb [arch=aarch64] http://ports.ubuntu.com/ focal main universe" >> /etc/apt/sources.list'
+          sudo apt-get update
+          sudo apt-get install musl-dev musl-tools liblzma-dev \
+                               libc6-arm64-cross libc6-dev-arm64-cross \
+                               gcc-aarch64-linux-gnu
+      - uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: aarch64-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@v1
+      - name: Install cargo-deb and cross
+        run: cargo install cargo-deb cross
+      - name: Run cargo deb
+        uses: actions-rs/cargo@v1
+        id: debbuild
+        with:
+          command: deb
+          args: --target aarch64-unknown-linux-gnu
+      - name: Upload Deb Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: aarch64deb
+          path: ./target/aarch64-unknown-linux-gnu/debian/*
+
+  amd64static:
     runs-on: ubuntu-latest
     name: Build amd64 static binary
     steps:
@@ -102,10 +137,10 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: amd64binaries
+          name: amd64static
           path: locast2tuner
 
-  win64binaries:
+  win64bin:
     runs-on: ubuntu-latest
     name: Build win64 executable
     steps:
@@ -134,12 +169,12 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: win64binaries
+          name: win64bin
           path: ./target/x86_64-pc-windows-gnu/release/*.exe
 
   upload_ppa:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [debbuild, raspbianbuild]
+    needs: [amd64deb, arm7deb, aarch64deb]
     runs-on: ubuntu-latest
     name: Upload binaries and update PPA
     steps:
@@ -184,7 +219,7 @@ jobs:
   create_release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [debbuild, raspbianbuild, win64binaries, amd64binaries]
+    needs: [amd64deb, arm7deb, aarch64deb, amd64static, win64bin]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v2
@@ -197,13 +232,14 @@ jobs:
         with:
           body_path: .latest_release.txt
           files: |
-            amd64binaries/*
             amd64deb/*.deb
             armv7deb/*.deb
-            win64binaries/*.exe
+            aarch64deb/*.deb
+            amd64static/*
+            win64bin/*.exe
 
-  linuxamd64dockerbuild:
-    needs: [amd64binaries]
+  amd64docker:
+    needs: [amd64static]
     runs-on: ubuntu-latest
     name: Docker (amd64) + publish
     steps:
@@ -227,7 +263,7 @@ jobs:
             type=ref,event=branch
       - uses: actions/download-artifact@v2
       - run: |
-          chmod +x ./amd64binaries/locast2tuner
+          chmod +x ./amd64static/locast2tuner
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to GitHub Container Registry
