@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 static LOGIN_URL: &str =
-    "https://api.locastnet.org/api/user/login?client_id=CqhAMsBw%2BnxTXSJMLGqyOw%3D%3D";
+    "https://api.locastnet.org/api/user/login?client_id=9qXBrVzpTjUZmVGsZRnnWQ-7GvGeJ48QWtV9v%2Bbsen4%3D";
 static USER_URL: &str = "https://api.locastnet.org/api/user/me";
 static TOKEN_LIFETIME: i64 = 3600;
 
@@ -60,8 +60,7 @@ async fn login<'a>(username: &str, password: &str) -> String {
     debug!("Logging in with {}", username);
     let credentials = json!({
         "username": username,
-        "password": password,
-        "captcha": "foo"
+        "password": password
     });
 
     let resp = crate::utils::post(LOGIN_URL, credentials, 10000)
