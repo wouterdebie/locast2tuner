@@ -2,6 +2,7 @@ use crate::config::Config;
 use chrono::{DateTime, Utc};
 use futures::lock::Mutex;
 use log::{error, info};
+use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
@@ -67,10 +68,9 @@ async fn login<'a>(username: &str, password: &str) -> String {
         .await
         .unwrap();
 
-    if !resp.status().is_success() {
-        panic!("Login failed");
-    } else {
-        info!("Login succeeded!");
+    match resp.status() {
+        StatusCode::OK => info!("Login succeeded!"),
+        _ => panic!("Login failed")
     }
 
     resp.json::<HashMap<String, String>>().await.unwrap()["token"].clone()
