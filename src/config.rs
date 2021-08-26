@@ -260,6 +260,7 @@ impl Config {
         conf.uuid = load_uuid(&cache_directory).unwrap();
 
         conf.cache_directory = cache_directory;
+
         Ok(conf)
     }
 }
