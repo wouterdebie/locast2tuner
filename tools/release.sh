@@ -14,6 +14,9 @@ echo "=== cargo check ==="
 cargo check
 echo "=== create release message"
 git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:%B > .latest_release.txt
+cat .new_sponsor_message.txt >> .latest_release.txt
+cat .new_sponsors.txt >> .latest_release.txt
+cat > .new_sponsors.txt
 vim .latest_release.txt
 git add .latest_release.txt
 echo "=== git commit ==="
