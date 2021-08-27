@@ -19,4 +19,5 @@
 - [Quickstart Guides](./quickstart.md)
   - [Emby](./quickstart/emby.md)
   - [Plex](./quickstart/plex.md)
+- [FAQ](./faq.md)
 - [Sponsoring](./sponsoring.md)

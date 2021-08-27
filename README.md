@@ -25,7 +25,7 @@ This project isn't complete yet. It works, but there are a few things I'd like t
 
 # Submitting bugs or feature requests
 ## Bugs
-> ❗ Make sure to check https://github.com/wouterdebie/locast2tuner/releases for breaking configuration changes in the latest release before submitting a bug!
+> ❗ Make sure to check https://github.com/wouterdebie/locast2tuner/releases for breaking configuration changes in the latest release before submitting a bug! Also, please read the documentation and FAQ before submitting a bug request!
 
 When you encounter a bug, please use [Github Issues](https://github.com/wouterdebie/locast2tuner/issues):
 - _**PLEASE USE THE ISSUE TEMPLATES!**_ Issues that are lacking log excerpts and other information might be closed. In other words don't file issues that are simple "It doesn't work" ones.
