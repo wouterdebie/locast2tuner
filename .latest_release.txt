@@ -1,5 +1,7 @@
-This release adds an aarch64 Debian/Ubuntu build that can be used on arm64 deployments.
+# 0.3.11
+This release adds some better logging for login errors. In general error handling and reporting needs to be much better, but this is at least something.
 
-Also, thanks to the follwoing amazing $50 sponsors: @tharris9d and @hdmllr! 
+Thanks to all the wonderful sponsors that donated since the last release! Since I added sponsoring to my account last week, I've received $260!
+Once Github pays out, I'll donate the money and give everybody an update on which organizations received donations. Thanks to all the people
+who have donated so far, because all of the money donated will go towards organizations that support women and underprivileged children in STEM education.
 
-All of the money donated will go towards organizations that support women and underprivileged children in STEM education.

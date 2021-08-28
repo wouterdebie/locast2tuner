@@ -13,14 +13,15 @@ cargo bump ${level}
 echo "=== cargo check ==="
 cargo check
 echo "=== create release message"
-git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:%B > .latest_release.txt
+new_version=$(grep -E '^version' Cargo.toml | cut -d'"' -f2)
+echo "# ${new_version}" > .latest_release.txt
+git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:%B >> .latest_release.txt
 cat .new_sponsor_message.txt >> .latest_release.txt
 cat .new_sponsors.txt >> .latest_release.txt
-cat > .new_sponsors.txt
+cat /dev/null > .new_sponsors.txt
 vim .latest_release.txt
 git add .latest_release.txt
 echo "=== git commit ==="
-new_version=$(grep -E '^version' Cargo.toml | cut -d'"' -f2)
 git commit -am "Release ${new_version}"
 echo "=== Tagging version v${new_version} ==="
 git tag v${new_version}
