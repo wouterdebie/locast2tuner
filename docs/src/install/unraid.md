@@ -1,0 +1,2 @@
+# Unraid notes
+The unraid image used to be managed by someone else, but has been consolidated in the regular locast2tuner distribution. Since images have moved, make sure you use the latest Unraid templates from [https://github.com/RandomNinjaAtk/unraid-templates](https://github.com/RandomNinjaAtk/unraid-templates) and that your `docker-compose.yml` has the image set to `ghcr.io/wouterdebie/locast2tuner:latest`.

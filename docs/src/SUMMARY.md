@@ -5,6 +5,7 @@
   - [Ubuntu/Debian](./install/debian.md)
   - [MacOS](./install/macos.md)
   - [Docker](./install/docker.md)
+    - [Unraid](./install/unraid.md)
   - [Windows](./install/windows.md)
   - [Source](./install/source.md)
 - [Configuration](./configuration.md)
