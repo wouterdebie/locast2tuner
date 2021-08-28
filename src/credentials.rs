@@ -64,14 +64,24 @@ async fn login<'a>(username: &str, password: &str) -> String {
         "password": password
     });
 
-    let resp = crate::utils::post(LOGIN_URL, credentials, 10000)
-        .await
-        .unwrap();
-
-    match resp.status() {
-        StatusCode::OK => info!("Login succeeded!"),
-        _ => panic!("Login failed")
-    }
+    let resp = match crate::utils::post(LOGIN_URL, credentials, 10000).await {
+        Ok(r) if r.status() == StatusCode::OK => {
+            info!("Login succeeded!");
+            r
+        }
+        Ok(r) if r.status() == StatusCode::NOT_FOUND => {
+            error!("Login failed! Incorrect credentials.");
+            panic!("Login failed, status code: {}", r.status())
+        }
+        Ok(r) => {
+            error!("Login failed, status code: {}", r.status());
+            panic!("Login failed, status code: {}", r.status())
+        }
+        Err(e) => {
+            error!("Login failed: {}", e);
+            panic!("Login failed: {}", e)
+        }
+    };
 
     resp.json::<HashMap<String, String>>().await.unwrap()["token"].clone()
 }
