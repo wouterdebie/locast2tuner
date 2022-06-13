@@ -1,5 +1,7 @@
 # locast2tuner
 
+**DEPRECATION WARNING! Unfortunately locast.org is no longer. This means that this project has been deprecated..**
+
 [![Join the chat at https://gitter.im/wouterdebie/locast2tuner](https://badges.gitter.im/wouterdebie/locast2tuner.svg)](https://gitter.im/wouterdebie/locast2tuner?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![GitHub release](https://img.shields.io/github/v/release/wouterdebie/locast2tuner)](https://github.com/wouterdebie/locast2tuner/releases/latest) ![License](https://img.shields.io/badge/License-MIT-blue) [![Sponsor](https://img.shields.io/github/sponsors/wouterdebie)](https://github.com/sponsors/wouterdebie)
 
 This application provides an interface between locast.org and Media Servers like [Plex Media Server (PMS)](https://plex.tv) and [Emby](https://emby.media) by acting like an [HDHomerun](https://www.silicondust.com/) or an m3u tuner and an XMLTV provider.
